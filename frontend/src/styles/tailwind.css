@@ -1,0 +1,11 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  --accent: #2563eb; /* blue-600 */
+  --accent-fg: #ffffff;
+}
+/* focus ring */
+.focus-ring:focus{ @apply ring-2 ring-accent outline-none; }
