@@ -1,20 +1,24 @@
 package ru.mtuci.sportapp.backend.repo;
 
-import ru.mtuci.sportapp.backend.entity.Athlete;
-import org.springframework.data.jpa.repository.*;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import ru.mtuci.sportapp.backend.entity.Athlete;
 
-import java.util.*;
+import java.util.List;
+import java.util.UUID;
 
 public interface AthleteRepo extends JpaRepository<Athlete, UUID> {
 
-    @Query("""
-    select a from Athlete a
-     where (:grp is null or a.group = :grp)
-       and (:status is null or a.status = :status)
-       and (:search is null or lower(a.fullName) like lower(concat('%', :search, '%')))
-  """)
-    List<Athlete> search(@Param("grp") String group,
+    @Query(value = """
+            select a.*
+            from athletes a
+            where (:grp is null or a.grp = :grp)
+              and (:status is null or a.status = :status)
+              and (:search is null or lower(a.full_name) like :search)
+            """,
+            nativeQuery = true)
+    List<Athlete> search(@Param("grp") String grp,
                          @Param("status") String status,
                          @Param("search") String search);
 }

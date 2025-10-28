@@ -7,8 +7,9 @@ import java.util.UUID;
 @Entity
 @Table(name = "athletes")
 public class Athlete {
+
     @Id
-    private UUID id = UUID.randomUUID();
+    private UUID id;
 
     @Column(name = "full_name", nullable = false)
     private String fullName;
@@ -17,7 +18,7 @@ public class Athlete {
     private LocalDate birthDate;
 
     @Column(name = "grp", nullable = false)
-    private String group;
+    private String grp;
 
     private String phone;
 
@@ -26,7 +27,7 @@ public class Athlete {
 
     private String status = "active";
 
-    // getters/setters
+    // Getters / setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -36,8 +37,8 @@ public class Athlete {
     public LocalDate getBirthDate() { return birthDate; }
     public void setBirthDate(LocalDate birthDate) { this.birthDate = birthDate; }
 
-    public String getGroup() { return group; }
-    public void setGroup(String group) { this.group = group; }
+    public String getGrp() { return grp; }
+    public void setGrp(String grp) { this.grp = grp; }
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
