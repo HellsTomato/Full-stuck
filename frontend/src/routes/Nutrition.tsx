@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getAthletes } from '@/services/athletes'
 import { getNutrition } from '@/services/nutrition'
 import { t } from '@/i18n/ru'
-import Avatar from '@/components/Avatar' // ✅ дефолтный импорт
+import Avatar from '@/components/Avatar'
 
 export default function Nutrition() {
   const [group, setGroup] = useState('')
@@ -43,20 +43,24 @@ export default function Nutrition() {
   }, [athletes, allNut, date])
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4 text-[var(--color-text)]">
       <div className="flex flex-wrap items-center gap-3">
-        <label className="text-sm">{t('common.date')}</label>
+        <label className="text-sm text-[var(--color-muted)]">
+          {t('common.date')}
+        </label>
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="px-3 py-2 border rounded-2xl"
+          className="px-3 py-2 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-sm outline-none focus:border-[var(--color-primary)]"
         />
-        <label className="text-sm">{t('common.group')}</label>
+        <label className="text-sm text-[var(--color-muted)]">
+          {t('common.group')}
+        </label>
         <select
           value={group}
           onChange={(e) => setGroup(e.target.value)}
-          className="px-3 py-2 border rounded-2xl"
+          className="px-3 py-2 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-sm outline-none focus:border-[var(--color-primary)]"
         >
           <option value="">Все</option>
           <option value="Юниоры">Юниоры</option>
@@ -64,10 +68,10 @@ export default function Nutrition() {
         </select>
       </div>
 
-      <div className="bg-white rounded-2xl shadow overflow-hidden">
+      <div className="card-dark overflow-hidden">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr className="[&>th]:text-left [&>th]:px-4 [&>th]:py-2">
+          <thead className="bg-[var(--color-surface)]">
+            <tr className="[&>th]:text-left [&>th]:px-4 [&>th]:py-2 text-[var(--color-muted)]">
               <th>Фото</th>
               <th>Имя</th>
               <th>Статус еды</th>
@@ -80,9 +84,8 @@ export default function Nutrition() {
               rows.map((r) => (
                 <tr
                   key={r.athlete.id}
-                  className="border-t [&>td]:px-4 [&>td]:py-2 hover:bg-gray-50"
+                  className="border-t border-[var(--color-border)] [&>td]:px-4 [&>td]:py-2 hover:bg-[var(--color-surface)]/80"
                 >
-                  {/* ✅ безопасный Avatar */}
                   <td>
                     <Avatar
                       name={r?.athlete?.fullName}
@@ -91,7 +94,6 @@ export default function Nutrition() {
                     />
                   </td>
 
-                  {/* ✅ безопасное имя */}
                   <td>{r?.athlete?.fullName || 'Неизвестный спортсмен'}</td>
 
                   <td>
@@ -99,13 +101,11 @@ export default function Nutrition() {
                       <span
                         className={`px-2 py-1 rounded-2xl text-xs ${
                           r.data.flag === 'ОК'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-red-100 text-red-700'
+                            ? 'bg-green-500/20 text-green-300'
+                            : 'bg-red-500/20 text-red-300'
                         }`}
                       >
-                        {r.data.flag === 'ОК'
-                          ? 'В норме'
-                          : 'Низкий уровень'}
+                        {r.data.flag === 'ОК' ? 'В норме' : 'Низкий уровень'}
                       </span>
                     ) : (
                       '—'
@@ -120,7 +120,10 @@ export default function Nutrition() {
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="p-4 text-center text-gray-500">
+                <td
+                  colSpan={5}
+                  className="p-4 text-center text-[var(--color-muted)]"
+                >
                   {t('common.empty')}
                 </td>
               </tr>

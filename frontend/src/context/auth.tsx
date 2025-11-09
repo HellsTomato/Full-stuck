@@ -1,44 +1,81 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
+import React, {                                     // React — библиотека UI
+  createContext,                                    // createContext — создаёт контекст
+  useContext,                                       // useContext — хук для чтения контекста
+  useEffect,                                        // useEffect — хук побочных эффектов
+  useState,                                         // useState — состояние компонента
+  ReactNode,                                        // ReactNode — тип для детей
+} from "react";
 
-type User = { id: string; fullName: string; email: string }
-type AuthContextType = {
-  user: User | null
-  login: (user: User) => void
-  logout: () => void
-}
+type AuthContextValue = {                           // AuthContextValue — тип значения контекста
+  token: string | null;                             // token — текущий токен или null
+  username: string | null;                          // username — логин тренера
+  login: (token: string, username: string) => void; // login — функция входа
+  logout: () => void;                               // logout — функция выхода
+};
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextValue | undefined>(
+  undefined                                         // undefined — по умолчанию (не инициализирован)
+);                                                  // создаём сам контекст
 
-/**
- * Провайдер авторизации. Оборачивает всё приложение.
- */
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(
-    JSON.parse(localStorage.getItem('trainer_user') || 'null')
-  )
+// LOCAL_STORAGE_KEY — ключ для хранения токена в браузере
+const TOKEN_KEY = "trainer_token";                  // TOKEN_KEY — ключ токена
+const USERNAME_KEY = "trainer_username";            // USERNAME_KEY — ключ логина
 
-  const login = (u: User) => {
-    setUser(u)
-    localStorage.setItem('trainer_user', JSON.stringify(u))
-  }
+type AuthProviderProps = {                          // AuthProviderProps — тип пропсов
+  children: ReactNode;                              // children — вложенные компоненты
+};
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem('trainer_user')
-  }
+export const AuthProvider: React.FC<AuthProviderProps> = ({
+  children,                                         // children — всё приложение
+}) => {
+  const [token, setToken] = useState<string | null>(null);     // token — состояние токена
+  const [username, setUsername] = useState<string | null>(null); // username — состояние логина
+
+  useEffect(() => {                                 // useEffect — выполняется при монтировании
+    const savedToken = localStorage.getItem(TOKEN_KEY);    // savedToken — токен из localStorage
+    const savedUsername = localStorage.getItem(USERNAME_KEY); // savedUsername — логин из localStorage
+
+    if (savedToken) {                               // если токен был сохранён
+      setToken(savedToken);                         // восстанавливаем токен в состояние
+    }
+    if (savedUsername) {                            // если логин был сохранён
+      setUsername(savedUsername);                   // восстанавливаем логин
+    }
+  }, []);                                           // [] — запуск один раз при монтировании
+
+  const login = (newToken: string, user: string) => { // login — вызываем после успешного логина
+    setToken(newToken);                             // сохраняем токен в состояние
+    setUsername(user);                              // сохраняем логин в состояние
+    localStorage.setItem(TOKEN_KEY, newToken);      // пишем токен в localStorage
+    localStorage.setItem(USERNAME_KEY, user);       // пишем логин в localStorage
+  };
+
+  const logout = () => {                            // logout — очищаем авторизацию
+    setToken(null);                                 // убираем токен из state
+    setUsername(null);                              // убираем логин из state
+    localStorage.removeItem(TOKEN_KEY);             // удаляем токен из localStorage
+    localStorage.removeItem(USERNAME_KEY);          // удаляем логин из localStorage
+  };
+
+  const value: AuthContextValue = {                 // value — объект, который увидят потребители
+    token,                                          // token — текущее значение
+    username,                                       // username — логин
+    login,                                          // login — функция входа
+    logout,                                         // logout — функция выхода
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
-      {children}
+    <AuthContext.Provider value={value}>            {/* Provider — отдаём значение контекста */}
+      {children}                                    {/* children — само приложение */}
     </AuthContext.Provider>
-  )
-}
+  );
+};
 
-/**
- * Хук для доступа к пользователю и методам login/logout
- */
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('AuthProvider missing')
-  return ctx
-}
+// useAuth — удобный хук для использования контекста
+export const useAuth = (): AuthContextValue => {    // useAuth — хук
+  const ctx = useContext(AuthContext);              // ctx — значение из контекста
+  if (!ctx) {                                       // если контекст не найден
+    throw new Error("useAuth должен использоваться внутри AuthProvider"); // защита от ошибок
+  }
+  return ctx;                                       // возвращаем значение контекста
+};

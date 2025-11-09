@@ -21,14 +21,12 @@ export default function Attendance() {
   const [date, setDate] = useState<string>(todayISO())
   const [group, setGroup] = useState<string>('')
 
-  // спортсмены
   const athletesQ = useQuery({
     queryKey: ['athletes', group],
     queryFn: () => getAthletes({ group: group || (undefined as any) }),
   })
   const athletes = athletesQ.data?.items ?? []
 
-  // посещаемость по дате/группе
   const attQ = useQuery({
     queryKey: ['attendance', date, group],
     queryFn: () => getAttendance({ date, group: group || (undefined as any) }),
@@ -36,22 +34,15 @@ export default function Attendance() {
   })
   const attItems = attQ.data?.items ?? []
 
-  // строим строки для таблицы:
-  // если из API пришли записи — используем их.
-  // если нет (например, тренировки нет), строим пустые строки на основе списка спортсменов группы,
-  // но кнопки отметки будут выключены (нет sessionId).
   const rows = useMemo(() => {
-    // sessionId для выбранной даты/группы (берём любой из пришедших записей)
     const fallbackSessionId = attItems[0]?.sessionId || null
 
-    // индекс по athleteId -> запись посещаемости
-    const map = new Map<string, typeof attItems[number]>()
+    const map = new Map<string, (typeof attItems)[number]>()
     attItems.forEach((a) => map.set(a.athleteId, a))
 
     const source =
       attItems.length > 0
-        ? // когда есть данные — показываем только тех, кто в них есть
-          Array.from(new Set(attItems.map((x) => x.athleteId))).map((id) => {
+        ? Array.from(new Set(attItems.map((x) => x.athleteId))).map((id) => {
             const a = athletes.find((p) => p.id === id)
             const rec = map.get(id)
             return {
@@ -62,12 +53,11 @@ export default function Attendance() {
               grp: a?.group,
             }
           })
-        : // когда на дату нет записей — строим список по спортсменам группы
-          athletes
+        : athletes
             .filter((a) => !group || a.group === group)
             .map((a) => ({
               athleteId: a.id,
-              sessionId: fallbackSessionId, // может быть null
+              sessionId: fallbackSessionId,
               status: undefined,
               name: a.fullName,
               grp: a.group,
@@ -76,7 +66,6 @@ export default function Attendance() {
     return source
   }, [attItems, athletes, group])
 
-  // сохранение (bulk)
   const bulkMut = useMutation({
     mutationFn: (payload: {
       date: string
@@ -89,7 +78,6 @@ export default function Attendance() {
     onError: () => toast.push(t('common.errorSave'), 'error'),
   })
 
-  // отметить одного
   function mark(athleteId: string, status: Status) {
     const row = rows.find((r) => r.athleteId === athleteId)
     if (!row?.sessionId) {
@@ -103,7 +91,6 @@ export default function Attendance() {
     })
   }
 
-  // отметить всех
   function bulkMark(status: Status) {
     const withSession = rows.filter((r) => r.sessionId)
     if (withSession.length === 0) {
@@ -124,22 +111,24 @@ export default function Attendance() {
   const noSession = rows.every((r) => !r.sessionId)
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4 text-[var(--color-text)]">
       {/* Панель фильтров */}
       <div className="flex flex-wrap items-center gap-3">
-        <label className="text-sm">Дата</label>
+        <label className="text-sm text-[var(--color-muted)]">Дата</label>
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="px-3 py-2 border rounded-2xl"
+          className="px-3 py-2 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-sm outline-none focus:border-[var(--color-primary)]"
         />
 
-        <label className="text-sm">{t('common.group')}</label>
+        <label className="text-sm text-[var(--color-muted)]">
+          {t('common.group')}
+        </label>
         <select
           value={group}
           onChange={(e) => setGroup(e.target.value)}
-          className="px-3 py-2 border rounded-2xl"
+          className="px-3 py-2 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-sm outline-none focus:border-[var(--color-primary)]"
         >
           <option value="">Все</option>
           <option value="Юниоры">Юниоры</option>
@@ -149,35 +138,37 @@ export default function Attendance() {
         <div className="ml-auto flex gap-2">
           <button
             onClick={() => bulkMark('Присутствовал')}
-            className="px-3 py-2 rounded-2xl border"
+            className="btn-outline rounded-2xl text-xs px-3 py-2"
             disabled={noSession || bulkMut.isPending}
             title={noSession ? 'На эту дату нет тренировки' : ''}
           >
-            Присутствовал
+            Присутствовали все
           </button>
           <button
             onClick={() => bulkMark('Опоздал')}
-            className="px-3 py-2 rounded-2xl border"
+            className="btn-outline rounded-2xl text-xs px-3 py-2"
             disabled={noSession || bulkMut.isPending}
             title={noSession ? 'На эту дату нет тренировки' : ''}
           >
-            Опоздал
+            Все опоздали
           </button>
           <button
             onClick={() => bulkMark('Отсутствовал')}
-            className="px-3 py-2 rounded-2xl border"
+            className="btn-outline rounded-2xl text-xs px-3 py-2"
             disabled={noSession || bulkMut.isPending}
             title={noSession ? 'На эту дату нет тренировки' : ''}
           >
-            Отсутствовал
+            Все отсутствовали
           </button>
         </div>
       </div>
 
       {/* Таблица */}
-      <div className="bg-white rounded-2xl shadow overflow-hidden">
+      <div className="card-dark overflow-hidden">
         {attQ.isLoading ? (
-          <div className="p-4">{t('common.loading')}</div>
+          <div className="p-4 text-[var(--color-muted)]">
+            {t('common.loading')}
+          </div>
         ) : (
           <table className="w-full table-fixed text-sm">
             <colgroup>
@@ -185,8 +176,8 @@ export default function Attendance() {
               <col className="w-[20%]" />
               <col className="w-[40%]" />
             </colgroup>
-            <thead className="bg-gray-50">
-              <tr className="[&>th]:text-left [&>th]:px-4 [&>th]:py-2">
+            <thead className="bg-[var(--color-surface)]">
+              <tr className="[&>th]:text-left [&>th]:px-4 [&>th]:py-2 text-[var(--color-muted)]">
                 <th>ФИО</th>
                 <th>Группа</th>
                 <th>Статус</th>
@@ -197,20 +188,20 @@ export default function Attendance() {
                 rows.map((r) => (
                   <tr
                     key={r.athleteId}
-                    className="border-t [&>td]:px-4 [&>td]:py-2 hover:bg-gray-50"
+                    className="border-t border-[var(--color-border)] [&>td]:px-4 [&>td]:py-2 hover:bg-[var(--color-surface)]/80"
                   >
                     <td className="truncate">
                       {r.name || 'Неизвестный спортсмен'}
                     </td>
                     <td className="truncate">{r.grp || '—'}</td>
                     <td>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => mark(r.athleteId, 'Присутствовал')}
-                          className={`px-3 py-1 rounded-2xl border ${
+                          className={`px-3 py-1 rounded-2xl border text-xs ${
                             r.status === 'Присутствовал'
-                              ? 'bg-green-50 border-green-300'
-                              : ''
+                              ? 'bg-green-500/20 border-green-400'
+                              : 'border-[var(--color-border)]'
                           }`}
                           disabled={!r.sessionId || bulkMut.isPending}
                           title={!r.sessionId ? 'Нет тренировки' : ''}
@@ -219,10 +210,10 @@ export default function Attendance() {
                         </button>
                         <button
                           onClick={() => mark(r.athleteId, 'Опоздал')}
-                          className={`px-3 py-1 rounded-2xl border ${
+                          className={`px-3 py-1 rounded-2xl border text-xs ${
                             r.status === 'Опоздал'
-                              ? 'bg-yellow-50 border-yellow-300'
-                              : ''
+                              ? 'bg-yellow-500/20 border-yellow-400'
+                              : 'border-[var(--color-border)]'
                           }`}
                           disabled={!r.sessionId || bulkMut.isPending}
                           title={!r.sessionId ? 'Нет тренировки' : ''}
@@ -231,10 +222,10 @@ export default function Attendance() {
                         </button>
                         <button
                           onClick={() => mark(r.athleteId, 'Отсутствовал')}
-                          className={`px-3 py-1 rounded-2xl border ${
+                          className={`px-3 py-1 rounded-2xl border text-xs ${
                             r.status === 'Отсутствовал'
-                              ? 'bg-red-50 border-red-300'
-                              : ''
+                              ? 'bg-red-500/20 border-red-400'
+                              : 'border-[var(--color-border)]'
                           }`}
                           disabled={!r.sessionId || bulkMut.isPending}
                           title={!r.sessionId ? 'Нет тренировки' : ''}
@@ -247,7 +238,10 @@ export default function Attendance() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={3} className="p-6 text-center text-gray-500">
+                  <td
+                    colSpan={3}
+                    className="p-6 text-center text-[var(--color-muted)]"
+                  >
                     {t('common.empty')}
                   </td>
                 </tr>

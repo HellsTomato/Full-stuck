@@ -1,11 +1,42 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root{
-  --accent: #2563eb; /* blue-600 */
-  --accent-fg: #ffffff;
+/* === ТЕМНАЯ ТЕМА тренерского приложения === */
+:root {
+  --color-bg: #020617;            /* фон — тёмно-синий (как логин) */
+  --color-surface: #111827;       /* карточки / панели */
+  --color-primary: #5865f2;       /* кнопки, акценты (фиолетово-синий) */
+  --color-primary-hover: #4752c4;
+  --color-text: #e5e7eb;          /* основной текст (почти белый) */
+  --color-muted: #9ca3af;         /* второстепенный текст */
+  --color-border: #1f2933;        /* границы и разделители */
 }
-/* focus ring */
-.focus-ring:focus{ @apply ring-2 ring-accent outline-none; }
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Inter', sans-serif;
+}
+
+/* === СТИЛИ КНОПОК === */
+.btn {
+  @apply bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]
+         text-white font-medium rounded-lg px-4 py-2 transition;
+}
+
+.btn-outline {
+  @apply border border-[var(--color-primary)] text-[var(--color-primary)]
+         hover:bg-[var(--color-primary)] hover:text-white rounded-lg px-4 py-2 transition;
+}
+
+.btn-danger {
+  @apply bg-red-500 hover:bg-red-600 text-white
+         font-medium rounded-lg px-4 py-2 transition;
+}
+
+/* === ТЁМНАЯ КАРТОЧКА, КАК У ФОРМЫ ЛОГИНА === */
+.card-dark {
+  @apply bg-[var(--color-surface)] border border-[var(--color-border)]
+         rounded-2xl shadow-lg;
+}

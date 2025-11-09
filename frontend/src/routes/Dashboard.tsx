@@ -31,8 +31,7 @@ export default function Dashboard() {
     [athletes]
   )
 
-  // План недели (для API оставим "неделю" как календарную от понедельника),
-  // а отображение недели сделаем от сегодняшнего дня.
+  // План недели
   const weekStartForApi = iso(mondayOf())
   const { data: plan } = useQuery({
     queryKey: ['weekly-plan', weekStartForApi, group],
@@ -76,53 +75,75 @@ export default function Dashboard() {
   }, [plan, today, group])
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
+    <div className="p-4 md:p-6 space-y-4 text-[var(--color-text)]">
       {/* Верхняя строка */}
       <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-4">
         {/* Сегодняшняя тренировка */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
-          <div className="px-4 py-2 border-b font-semibold">Сегодняшняя тренировка</div>
+        <div className="card-dark">
+          <div className="px-4 py-2 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-muted)]">
+            Сегодняшняя тренировка
+          </div>
           <div className="p-4 text-sm">
             {todaySession ? (
               <>
-                <div className="mb-3">{todaySession.time || '—'}</div>
-                <div className="text-gray-700">Присутствуют: <b>{present}</b> чел.</div>
-                <div className="text-gray-700">Отсутствуют: <b>{absent}</b> чел.</div>
+                <div className="mb-3 text-[var(--color-text)]">
+                  {todaySession.time || '—'}
+                </div>
+                <div className="text-[var(--color-text)]">
+                  Присутствуют: <b>{present}</b> чел.
+                </div>
+                <div className="text-[var(--color-text)]">
+                  Отсутствуют: <b>{absent}</b> чел.
+                </div>
               </>
             ) : (
-              <div className="text-gray-500">На сегодня тренировка не запланирована</div>
+              <div className="text-[var(--color-muted)]">
+                На сегодня тренировка не запланирована
+              </div>
             )}
           </div>
         </div>
 
         {/* Группа + Неделя (от сегодня) */}
         <div className="space-y-3">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-3">
-            <label className="text-sm mr-2">Группа:</label>
+          {/* выбор группы */}
+          <div className="card-dark p-3 flex items-center gap-2">
+            <label className="text-sm text-[var(--color-muted)]">Группа:</label>
             <select
-              className="px-3 py-2 border rounded-2xl min-w-[160px]"
+              className="px-3 py-2 rounded-xl bg-[var(--color-bg)] border border-[var(--color-border)] text-sm outline-none focus:border-[var(--color-primary)]"
               value={group}
               onChange={e => setGroup(e.target.value)}
             >
-              {groups.length ? groups.map(g => <option key={g} value={g}>{g}</option>) : <option>—</option>}
+              {groups.length
+                ? groups.map(g => <option key={g} value={g}>{g}</option>)
+                : <option>—</option>}
             </select>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
-            <div className="px-4 py-2 border-b font-semibold">Неделя</div>
+          {/* неделя */}
+          <div className="card-dark">
+            <div className="px-4 py-2 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-muted)]">
+              Неделя
+            </div>
             <div className="p-3 grid grid-cols-7 gap-1">
               {weekCells.map(c => (
                 <div
                   key={c.iso}
                   className={[
                     "h-12 grid place-items-center rounded-md border text-xs leading-tight px-1 text-center",
-                    c.isToday ? "border-blue-500 bg-blue-50" : "border-gray-300",
-                    c.has ? "bg-gray-100" : ""
+                    c.isToday
+                      ? "border-[var(--color-primary)] bg-[var(--color-surface)]"
+                      : "border-[var(--color-border)]",
+                    c.has ? "bg-[var(--color-border)]" : ""
                   ].join(' ')}
                   title={c.iso}
                 >
-                  <div className="font-medium">{c.label}</div>
-                  <div className="text-[10px] text-gray-600">{c.dayNum}</div>
+                  <div className="font-medium text-[var(--color-text)]">
+                    {c.label}
+                  </div>
+                  <div className="text-[10px] text-[var(--color-muted)]">
+                    {c.dayNum}
+                  </div>
                 </div>
               ))}
             </div>
@@ -131,24 +152,26 @@ export default function Dashboard() {
       </div>
 
       {/* Быстрые действия */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
-        <div className="px-4 py-2 border-b font-semibold">Быстрые действия</div>
+      <div className="card-dark">
+        <div className="px-4 py-2 border-b border-[var(--color-border)] text-sm font-semibold text-[var(--color-muted)]">
+          Быстрые действия
+        </div>
         <div className="p-3 flex flex-col md:flex-row gap-2">
           <button
             onClick={() => nav('/attendance')}
-            className="px-3 py-2 rounded-md border bg-gray-50 hover:bg-gray-100 text-sm"
+            className="btn-outline text-sm"
           >
             Отметить посещаемость
           </button>
           <button
             onClick={() => nav('/injuries')}
-            className="px-3 py-2 rounded-md border bg-gray-50 hover:bg-gray-100 text-sm"
+            className="btn-outline text-sm"
           >
             Добавить травму
           </button>
           <button
             onClick={() => nav('/reports')}
-            className="px-3 py-2 rounded-md border bg-gray-50 hover:bg-gray-100 text-sm"
+            className="btn-outline text-sm"
           >
             Сформировать отчёт
           </button>

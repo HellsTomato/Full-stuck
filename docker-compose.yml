@@ -12,12 +12,11 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
 
-
   backend:
     build: ./backend
     container_name: trainer_backend
     environment:
-      # Эти переменные подхватит Spring (ниже покажу, как)
+      # Эти переменные подхватит Spring
       DB_URL: jdbc:postgresql://db:5432/trainer_db
       DB_USER: trainer
       DB_PASS: trainer
@@ -25,6 +24,9 @@ services:
       - db
     ports:
       - "8080:8080"
+    volumes:
+      # 🔹 persist для загруженных файлов (фото профиля и т.п.)
+      - ./backend/uploads:/app/uploads
 
   frontend:
     build: ./frontend

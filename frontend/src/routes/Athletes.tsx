@@ -9,9 +9,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from 'react-router-dom'
 
 const schema = z.object({
-  fullName: z.string().min(1, "Укажите ФИО"),
-  birthDate: z.string().min(1, "Укажите дату рождения"),
-  group: z.string().min(1, "Укажите группу"),
+  fullName: z.string().min(1, 'Укажите ФИО'),
+  birthDate: z.string().min(1, 'Укажите дату рождения'),
+  group: z.string().min(1, 'Укажите группу'),
   phone: z.string().optional(),
   notes: z.string().optional(),
 })
@@ -30,7 +30,12 @@ export default function Athletes() {
   })
   const toast = useToast()
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FormValues>({
     resolver: zodResolver(schema),
   })
 
@@ -78,35 +83,36 @@ export default function Athletes() {
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4 text-[var(--color-text)]">
       <Topbar onSearch={setSearch}>
         <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-600">{t('common.group')}</label>
+          <label className="text-sm text-[var(--color-muted)]">
+            {t('common.group')}
+          </label>
           <select
             value={group}
             onChange={(e) => setGroup(e.target.value)}
-            className="px-2 py-1 border rounded-2xl"
+            className="px-3 py-2 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-sm outline-none focus:border-[var(--color-primary)]"
           >
             <option value="">Все</option>
             <option value="Юниоры">Юниоры</option>
             <option value="Старшие">Старшие</option>
           </select>
         </div>
-        <button
-          onClick={onAdd}
-          className="px-3 py-2 rounded-2xl bg-accent text-white"
-        >
+        <button onClick={onAdd} className="btn rounded-2xl text-sm">
           {t('actions.add')} спортсмена
         </button>
       </Topbar>
 
-      <div className="bg-white rounded-2xl shadow overflow-hidden">
+      <div className="card-dark overflow-hidden">
         {isLoading ? (
-          <div className="p-4">{t('common.loading')}</div>
+          <div className="p-4 text-[var(--color-muted)]">
+            {t('common.loading')}
+          </div>
         ) : (
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 sticky top-0">
-              <tr className="[&>th]:text-left [&>th]:px-4 [&>th]:py-2">
+            <thead className="bg-[var(--color-surface)]">
+              <tr className="[&>th]:text-left [&>th]:px-4 [&>th]:py-2 text-[var(--color-muted)]">
                 <th>ФИО</th>
                 <th>Группа</th>
                 <th>Телефон</th>
@@ -119,24 +125,25 @@ export default function Athletes() {
                 data.items.map((a) => (
                   <tr
                     key={a.id}
-                    className="border-t [&>td]:px-4 [&>td]:py-2 hover:bg-gray-50"
+                    className="border-t border-[var(--color-border)] [&>td]:px-4 [&>td]:py-2 hover:bg-[var(--color-surface)]/80"
                   >
-                    {/* ✅ ССЫЛКА НА ПРОФИЛЬ */}
                     <td>
                       <Link
                         to={`/athletes/${a.id}`}
-                        className="text-blue-600 hover:underline"
+                        className="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)]"
                       >
                         {a.fullName}
                       </Link>
                     </td>
                     <td>{a.group}</td>
                     <td>{a.phone || '—'}</td>
-                    <td className="max-w-[24rem] truncate">{a.notes || '—'}</td>
+                    <td className="max-w-[24rem] truncate">
+                      {a.notes || '—'}
+                    </td>
                     <td className="text-right">
                       <button
                         onClick={() => onEdit(a.id)}
-                        className="px-2 py-1 rounded-2xl border hover:bg-gray-50"
+                        className="btn-outline text-sm rounded-2xl px-3 py-1.5"
                       >
                         {t('actions.edit')}
                       </button>
@@ -147,7 +154,7 @@ export default function Athletes() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="p-4 text-center text-gray-500"
+                    className="p-4 text-center text-[var(--color-muted)]"
                   >
                     {t('common.empty')}
                   </td>
@@ -167,41 +174,45 @@ export default function Athletes() {
         >
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="bg-white rounded-2xl shadow p-4 w-full max-w-lg"
+            className="card-dark w-full max-w-lg p-4"
           >
             <div className="text-lg font-semibold mb-3">
               {editId ? 'Редактировать спортсмена' : 'Добавить спортсмена'}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm">ФИО</label>
+                <label className="text-sm text-[var(--color-muted)]">ФИО</label>
                 <input
-                  className="w-full px-3 py-2 border rounded-2xl"
+                  className="w-full px-3 py-2 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-muted)] outline-none focus:border-[var(--color-primary)]"
                   {...register('fullName')}
                 />
                 {errors.fullName && (
-                  <p className="text-red-600 text-xs">
+                  <p className="text-red-400 text-xs mt-1">
                     {errors.fullName.message}
                   </p>
                 )}
               </div>
               <div>
-                <label className="text-sm">Дата рождения</label>
+                <label className="text-sm text-[var(--color-muted)]">
+                  Дата рождения
+                </label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border rounded-2xl"
+                  className="w-full px-3 py-2 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] outline-none focus:border-[var(--color-primary)]"
                   {...register('birthDate')}
                 />
                 {errors.birthDate && (
-                  <p className="text-red-600 text-xs">
+                  <p className="text-red-400 text-xs mt-1">
                     {errors.birthDate.message}
                   </p>
                 )}
               </div>
               <div>
-                <label className="text-sm">Группа</label>
+                <label className="text-sm text-[var(--color-muted)]">
+                  Группа
+                </label>
                 <select
-                  className="w-full px-3 py-2 border rounded-2xl"
+                  className="w-full px-3 py-2 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] outline-none focus:border-[var(--color-primary)]"
                   {...register('group')}
                 >
                   <option value="">Выберите…</option>
@@ -209,22 +220,26 @@ export default function Athletes() {
                   <option value="Старшие">Старшие</option>
                 </select>
                 {errors.group && (
-                  <p className="text-red-600 text-xs">
+                  <p className="text-red-400 text-xs mt-1">
                     {errors.group.message}
                   </p>
                 )}
               </div>
               <div>
-                <label className="text-sm">Телефон</label>
+                <label className="text-sm text-[var(--color-muted)]">
+                  Телефон
+                </label>
                 <input
-                  className="w-full px-3 py-2 border rounded-2xl"
+                  className="w-full px-3 py-2 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] outline-none focus:border-[var(--color-primary)]"
                   {...register('phone')}
                 />
               </div>
               <div className="col-span-2">
-                <label className="text-sm">Примечания</label>
+                <label className="text-sm text-[var(--color-muted)]">
+                  Примечания
+                </label>
                 <textarea
-                  className="w-full px-3 py-2 border rounded-2xl"
+                  className="w-full px-3 py-2 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] outline-none focus:border-[var(--color-primary)]"
                   rows={3}
                   {...register('notes')}
                 />
@@ -234,13 +249,13 @@ export default function Athletes() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="px-3 py-2 rounded-2xl border"
+                className="btn-outline rounded-2xl text-sm px-3 py-2"
               >
                 Отмена
               </button>
               <button
                 type="submit"
-                className="px-3 py-2 rounded-2xl bg-accent text-white"
+                className="btn rounded-2xl text-sm px-3 py-2"
               >
                 {t('actions.save')}
               </button>
@@ -252,14 +267,21 @@ export default function Athletes() {
   )
 }
 
-export function Topbar({ onSearch, children }: { onSearch: (s: string) => void; children?: React.ReactNode }) {
+export function Topbar({
+  onSearch,
+  children,
+}: {
+  onSearch: (s: string) => void
+  children?: React.ReactNode
+}) {
   const [v, setV] = useState('')
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex-1">
         <input
           placeholder={t('common.search')}
-          className="w-full px-3 py-2 border rounded-2xl"
+          className="w-full px-3 py-2 rounded-2xl bg-[var(--color-bg)] border border-[var(--color-border)] text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] outline-none focus:border-[var(--color-primary)]"
           value={v}
           onChange={(e) => {
             setV(e.target.value)
