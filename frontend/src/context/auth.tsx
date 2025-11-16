@@ -6,76 +6,96 @@ import React, {                                     // React — библиот�
   ReactNode,                                        // ReactNode — тип для детей
 } from "react";
 
-type AuthContextValue = {                           // AuthContextValue — тип значения контекста
-  token: string | null;                             // token — текущий токен или null
+// AuthContextValue — тип значения контекста авторизации
+type AuthContextValue = {
+  token: string | null;                             // token — текущий JWT-токен или null
   username: string | null;                          // username — логин тренера
   login: (token: string, username: string) => void; // login — функция входа
   logout: () => void;                               // logout — функция выхода
+  loaded: boolean;                                  // loaded — флаг: авторизация уже загружена из localStorage
 };
 
-const AuthContext = createContext<AuthContextValue | undefined>(
-  undefined                                         // undefined — по умолчанию (не инициализирован)
-);                                                  // создаём сам контекст
+// создаём сам контекст; по умолчанию undefined, чтобы отлавливать неправильное использование
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-// LOCAL_STORAGE_KEY — ключ для хранения токена в браузере
-const TOKEN_KEY = "trainer_token";                  // TOKEN_KEY — ключ токена
-const USERNAME_KEY = "trainer_username";            // USERNAME_KEY — ключ логина
+// Ключи для хранения данных в localStorage
+const TOKEN_KEY = "trainer_token";                  // TOKEN_KEY — ключ, под которым лежит JWT
+const USERNAME_KEY = "trainer_username";            // USERNAME_KEY — ключ для логина тренера
 
-type AuthProviderProps = {                          // AuthProviderProps — тип пропсов
-  children: ReactNode;                              // children — вложенные компоненты
+// AuthProviderProps — тип пропсов провайдера
+type AuthProviderProps = {
+  children: ReactNode;                              // children — всё приложение внутри провайдера
 };
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({
-  children,                                         // children — всё приложение
-}) => {
-  const [token, setToken] = useState<string | null>(null);     // token — состояние токена
-  const [username, setUsername] = useState<string | null>(null); // username — состояние логина
+// AuthProvider — обёртка над приложением, даёт доступ к авторизации через контекст
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  // token — токен авторизации; изначально null, пока не поднимем из localStorage
+  const [token, setToken] = useState<string | null>(null);
 
-  useEffect(() => {                                 // useEffect — выполняется при монтировании
-    const savedToken = localStorage.getItem(TOKEN_KEY);    // savedToken — токен из localStorage
+  // username — имя пользователя (логин тренера)
+  const [username, setUsername] = useState<string | null>(null);
+
+  // loaded — флаг "мы уже проверили localStorage и знаем, авторизован юзер или нет"
+  const [loaded, setLoaded] = useState(false);
+
+  // useEffect — при первом монтировании провайдера читаем данные из localStorage
+  useEffect(() => {
+    const savedToken = localStorage.getItem(TOKEN_KEY);       // savedToken — токен из localStorage
     const savedUsername = localStorage.getItem(USERNAME_KEY); // savedUsername — логин из localStorage
 
-    if (savedToken) {                               // если токен был сохранён
-      setToken(savedToken);                         // восстанавливаем токен в состояние
+    if (savedToken) {                                         // если токен был сохранён ранее
+      setToken(savedToken);                                   // восстанавливаем токен в состояние
     }
-    if (savedUsername) {                            // если логин был сохранён
-      setUsername(savedUsername);                   // восстанавливаем логин
-    }
-  }, []);                                           // [] — запуск один раз при монтировании
 
-  const login = (newToken: string, user: string) => { // login — вызываем после успешного логина
-    setToken(newToken);                             // сохраняем токен в состояние
-    setUsername(user);                              // сохраняем логин в состояние
-    localStorage.setItem(TOKEN_KEY, newToken);      // пишем токен в localStorage
-    localStorage.setItem(USERNAME_KEY, user);       // пишем логин в localStorage
+    if (savedUsername) {                                      // если логин был сохранён ранее
+      setUsername(savedUsername);                             // восстанавливаем логин в состояние
+    }
+
+    setLoaded(true);                                          // помечаем, что авторизация инициализирована
+  }, []);                                                     // [] — выполняется один раз при монтировании
+
+  // login — вызываем после успешного логина (получили токен и логин с бэка)
+  const login = (newToken: string, user: string) => {
+    setToken(newToken);                                       // сохраняем токен в React-состояние
+    setUsername(user);                                        // сохраняем логин в React-состояние
+
+    localStorage.setItem(TOKEN_KEY, newToken);                // кладём токен в localStorage (персистентно)
+    localStorage.setItem(USERNAME_KEY, user);                 // кладём логин в localStorage
   };
 
-  const logout = () => {                            // logout — очищаем авторизацию
-    setToken(null);                                 // убираем токен из state
-    setUsername(null);                              // убираем логин из state
-    localStorage.removeItem(TOKEN_KEY);             // удаляем токен из localStorage
-    localStorage.removeItem(USERNAME_KEY);          // удаляем логин из localStorage
+  // logout — вызываем при выходе из аккаунта
+  const logout = () => {
+    setToken(null);                                           // очищаем токен в состоянии
+    setUsername(null);                                        // очищаем логин в состоянии
+
+    localStorage.removeItem(TOKEN_KEY);                       // удаляем токен из localStorage
+    localStorage.removeItem(USERNAME_KEY);                    // удаляем логин из localStorage
   };
 
-  const value: AuthContextValue = {                 // value — объект, который увидят потребители
-    token,                                          // token — текущее значение
-    username,                                       // username — логин
-    login,                                          // login — функция входа
-    logout,                                         // logout — функция выхода
+  // value — объект, который будет доступен всем компонентам через useAuth()
+  const value: AuthContextValue = {
+    token,                                                    // текущий токен
+    username,                                                 // текущий логин
+    login,                                                    // функция входа
+    logout,                                                   // функция выхода
+    loaded,                                                   // флаг: авторизация инициализирована
   };
 
   return (
-    <AuthContext.Provider value={value}>            {/* Provider — отдаём значение контекста */}
-      {children}                                    {/* children — само приложение */}
+    <AuthContext.Provider value={value}>                      {/* Provider — "раздаём" контекст вниз по дереву */}
+      {children}                                              {/* children — всё приложение внутри */}
     </AuthContext.Provider>
   );
 };
 
-// useAuth — удобный хук для использования контекста
-export const useAuth = (): AuthContextValue => {    // useAuth — хук
-  const ctx = useContext(AuthContext);              // ctx — значение из контекста
-  if (!ctx) {                                       // если контекст не найден
-    throw new Error("useAuth должен использоваться внутри AuthProvider"); // защита от ошибок
+// useAuth — удобный хук для доступа к контексту авторизации
+export const useAuth = (): AuthContextValue => {
+  const ctx = useContext(AuthContext);                        // ctx — значение контекста
+
+  if (!ctx) {                                                 // если контекст не найден
+    // значит, компонент пытаются использовать useAuth вне AuthProvider — это ошибка
+    throw new Error("useAuth должен использоваться внутри AuthProvider");
   }
-  return ctx;                                       // возвращаем значение контекста
+
+  return ctx;                                                 // возвращаем объект с token, username, login, logout, loaded
 };
