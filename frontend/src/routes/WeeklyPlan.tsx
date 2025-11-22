@@ -12,24 +12,24 @@ import {
 
 import { useToast } from "@/components/Toast";
 
-// ———————————————————————————————
-// Для отображения названий групп
-// ———————————————————————————————
+// -------------------------------------------------------------
+// Метки групп
+// -------------------------------------------------------------
 const GROUP_LABELS: Record<string, string> = {
   JUNIORS: "Юниоры",
   SENIORS: "Старшие",
 };
 
-// ———————————————————————————————
-// Получение ISO даты
-// ———————————————————————————————
+// -------------------------------------------------------------
+// ISO-дата
+// -------------------------------------------------------------
 function toISODate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-// ———————————————————————————————
-// Генерация дат недели
-// ———————————————————————————————
+// -------------------------------------------------------------
+// Генерация 7 дней недели
+// -------------------------------------------------------------
 function getWeekDates(startISO: string): string[] {
   const dates: string[] = [];
   const base = new Date(startISO);
@@ -47,107 +47,126 @@ export default function WeeklyPlan() {
   const qc = useQueryClient();
   const toast = useToast();
 
-  // ———————————————————————————————
-  // Неделя
-  // ———————————————————————————————
+  // -------------------------------------------------------------
+  // Начало недели (ПН)
+  // -------------------------------------------------------------
   const [weekStart, setWeekStart] = useState<string>(() => {
     const now = new Date();
     const day = now.getDay();
-    const diff = day === 0 ? -6 : 1 - day; // понедельник
+    const diff = day === 0 ? -6 : 1 - day;
     now.setDate(now.getDate() + diff);
     now.setHours(0, 0, 0, 0);
     return toISODate(now);
   });
 
-  // ———————————————————————————————
-  // Группа
-  // ———————————————————————————————
-  const [groupFilter, setGroupFilter] = useState<TrainingGroup>("ALL");
+  // -------------------------------------------------------------
+  // Фильтр группы
+  // -------------------------------------------------------------
+  const [groupFilter, setGroupFilter] =
+    useState<TrainingGroup>("ALL");
 
-  // ———————————————————————————————
-  // Редактируемая тренировка
-  // ———————————————————————————————
+  // -------------------------------------------------------------
+  // Буфер копирования недели 🔥
+  // -------------------------------------------------------------
+  const [copiedWeek, setCopiedWeek] = useState<string | null>(null);
+
+  // -------------------------------------------------------------
+  // Текущая редактируемая тренировка
+  // -------------------------------------------------------------
   const [editing, setEditing] = useState<WeeklyTraining | null>(null);
 
-  // ———————————————————————————————
-  // Загрузка тренировок на неделю
-  // ———————————————————————————————
+  // -------------------------------------------------------------
+  // Загрузка тренировок недели
+  // -------------------------------------------------------------
   const { data: trainings = [], isLoading } = useQuery({
     queryKey: ["weekly-plan", weekStart, groupFilter],
     queryFn: () => fetchWeekPlan(weekStart, groupFilter),
   });
 
-  // ———————————————————————————————
-  // Сохранение тренировки
-  // ———————————————————————————————
+  // -------------------------------------------------------------
+  // Мутации сохранения/удаления
+  // -------------------------------------------------------------
   const saveMut = useMutation({
     mutationFn: saveWeeklyTraining,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["weekly-plan", weekStart, groupFilter] });
+      qc.invalidateQueries({
+        queryKey: ["weekly-plan", weekStart, groupFilter],
+      });
       setEditing(null);
       toast.success("Сохранено");
     },
   });
 
-  // ———————————————————————————————
-  // Удаление тренировки
-  // ———————————————————————————————
   const deleteMut = useMutation({
     mutationFn: deleteWeeklyTraining,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["weekly-plan", weekStart, groupFilter] });
+      qc.invalidateQueries({
+        queryKey: ["weekly-plan", weekStart, groupFilter],
+      });
       toast.success("Удалено");
     },
   });
 
-  // ———————————————————————————————
-  // Копирование недели
-  // ———————————————————————————————
+  // -------------------------------------------------------------
+  // Мутация копирования недели
+  // -------------------------------------------------------------
   const copyMut = useMutation({
     mutationFn: copyWeek,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["weekly-plan", weekStart, groupFilter] });
-      toast.success("Неделя скопирована");
+      qc.invalidateQueries({
+        queryKey: ["weekly-plan", weekStart, groupFilter],
+      });
+      toast.success("Неделя вставлена");
     },
   });
 
+  // -------------------------------------------------------------
+  // КОПИРОВАНИЕ НЕДЕЛИ (в буфер)
+  // -------------------------------------------------------------
   function handleCopy() {
-    const prev = new Date(weekStart);
-    prev.setDate(prev.getDate() - 7);
+    setCopiedWeek(weekStart);
+    toast.success(`Неделя ${weekStart} скопирована`);
+  }
+
+  // -------------------------------------------------------------
+  // ВСТАВКА НЕДЕЛИ ИЗ БУФЕРА
+  // -------------------------------------------------------------
+  function handlePaste() {
+    if (!copiedWeek) return;
 
     copyMut.mutate({
-      fromWeekStart: toISODate(prev),
+      fromWeekStart: copiedWeek,
       toWeekStart: weekStart,
       group: groupFilter === "ALL" ? null : groupFilter,
     });
   }
 
-  // ———————————————————————————————
-  // Переход по неделям (НОРМАЛЬНЫЙ, РАБОЧИЙ)
-  // ———————————————————————————————
+  // -------------------------------------------------------------
+  // Переключение недели
+  // -------------------------------------------------------------
   const shiftWeek = (delta: number) => {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + delta * 7);
-    setWeekStart(toISODate(d)); // << НИКАКИХ getMonday — РАБОТАЕТ ВСЕГДА
+    setWeekStart(toISODate(d));
   };
 
-  // ———————————————————————————————
-  // Даты недели
-  // ———————————————————————————————
+  // -------------------------------------------------------------
+  // Даты текущей недели
+  // -------------------------------------------------------------
   const dates = getWeekDates(weekStart);
 
-  // ———————————————————————————————
-  // Чтобы разбить тренировки по дням
-  // ———————————————————————————————
+  // -------------------------------------------------------------
+  // Группировка тренировок по дате
+  // -------------------------------------------------------------
   const grouped: Record<string, WeeklyTraining[]> = {};
   for (const t of trainings) {
     if (!grouped[t.date]) grouped[t.date] = [];
     grouped[t.date].push(t);
   }
 
-  // ———————————————————————————————
+  // -------------------------------------------------------------
   // UI
-  // ———————————————————————————————
+  // -------------------------------------------------------------
   return (
     <div className="p-6 text-[var(--color-text)] space-y-4">
 
@@ -167,7 +186,9 @@ export default function WeeklyPlan() {
 
         <select
           value={groupFilter}
-          onChange={(e) => setGroupFilter(e.target.value as TrainingGroup)}
+          onChange={(e) =>
+            setGroupFilter(e.target.value as TrainingGroup)
+          }
           className="px-3 py-2 rounded-2xl
                      bg-[var(--color-bg)]
                      border border-[var(--color-border)]
@@ -178,53 +199,65 @@ export default function WeeklyPlan() {
           <option value="SENIORS">Старшие</option>
         </select>
 
+        {/* КОПИРОВАТЬ */}
         <button className="btn rounded-2xl" onClick={handleCopy}>
           Копировать неделю
+        </button>
+
+        {/* ВСТАВИТЬ */}
+        <button
+          className="btn rounded-2xl"
+          disabled={!copiedWeek}
+          onClick={handlePaste}
+          style={{ opacity: copiedWeek ? 1 : 0.4 }}
+        >
+          Вставить
         </button>
       </div>
 
       {/* Форма редактирования */}
       {editing && (
         <div className="card-dark p-4 space-y-3 rounded-2xl">
-
           <div className="text-xl font-semibold">
             {editing.id ? "Редактировать тренировку" : "Создать тренировку"}
           </div>
 
           <div className="grid gap-3 md:grid-cols-3">
 
-            {/* Дата */}
             <input
               type="date"
               value={editing.date}
-              onChange={(e) => setEditing(prev => prev ? { ...prev, date: e.target.value } : prev)}
-              className="px-3 py-2 rounded-2xl
-                         bg-[var(--color-bg)]
+              onChange={(e) =>
+                setEditing((prev) =>
+                  prev ? { ...prev, date: e.target.value } : prev
+                )
+              }
+              className="px-3 py-2 rounded-2xl bg-[var(--color-bg)]
                          border border-[var(--color-border)]
                          text-[var(--color-text)]"
             />
 
-            {/* Время */}
             <input
               type="time"
               value={editing.time}
-              onChange={(e) => setEditing(prev => prev ? { ...prev, time: e.target.value } : prev)}
-              className="px-3 py-2 rounded-2xl
-                         bg-[var(--color-bg)]
+              onChange={(e) =>
+                setEditing((prev) =>
+                  prev ? { ...prev, time: e.target.value } : prev
+                )
+              }
+              className="px-3 py-2 rounded-2xl bg-[var(--color-bg)]
                          border border-[var(--color-border)]
                          text-[var(--color-text)]"
             />
 
-            {/* Группа */}
             <select
               value={editing.group}
               onChange={(e) =>
-                setEditing(prev =>
-                  prev ? { ...prev, group: e.target.value as "JUNIORS" | "SENIORS" } : prev
+                setEditing((prev) =>
+                  prev ? { ...prev, group: e.target.value as any } : prev
                 )
               }
-              className="px-3 py-2 rounded-2xl
-                         bg-[var(--color-bg)]
+              className="px-3 py-2 rounded-2xl bg-[var(--color-bg)]
                          border border-[var(--color-border)]
                          text-[var(--color-text)]"
             >
@@ -232,47 +265,49 @@ export default function WeeklyPlan() {
               <option value="SENIORS">Старшие</option>
             </select>
 
-            {/* Тип */}
             <input
               type="text"
               placeholder="Тип тренировки"
               value={editing.type}
-              onChange={(e) => setEditing(prev => prev ? { ...prev, type: e.target.value } : prev)}
-              className="px-3 py-2 rounded-2xl
-                         bg-[var(--color-bg)]
+              onChange={(e) =>
+                setEditing((prev) =>
+                  prev ? { ...prev, type: e.target.value } : prev
+                )
+              }
+              className="px-3 py-2 rounded-2xl bg-[var(--color-bg)]
                          border border-[var(--color-border)]
                          text-[var(--color-text)] md:col-span-3"
             />
 
-            {/* Нагрузка */}
             <input
               type="text"
               placeholder="Нагрузка"
               value={editing.loadLevel}
-              onChange={(e) => setEditing(prev => prev ? { ...prev, loadLevel: e.target.value } : prev)}
-              className="px-3 py-2 rounded-2xl
-                         bg-[var(--color-bg)]
+              onChange={(e) =>
+                setEditing((prev) =>
+                  prev ? { ...prev, loadLevel: e.target.value } : prev
+                )
+              }
+              className="px-3 py-2 rounded-2xl bg-[var(--color-bg)]
                          border border-[var(--color-border)]
                          text-[var(--color-text)] md:col-span-3"
             />
 
-            {/* Заметки */}
             <textarea
               placeholder="Заметки"
               value={editing.notes}
-              onChange={(e) => setEditing(prev => prev ? { ...prev, notes: e.target.value } : prev)}
-              className="px-3 py-2 rounded-2xl min-h-[80px]
-                         bg-[var(--color-bg)]
+              onChange={(e) =>
+                setEditing((prev) =>
+                  prev ? { ...prev, notes: e.target.value } : prev
+                )
+              }
+              className="px-3 py-2 rounded-2xl min-h-[80px] bg-[var(--color-bg)]
                          border border-[var(--color-border)]
                          text-[var(--color-text)] md:col-span-3"
             />
 
-            {/* Кнопки */}
             <div className="flex justify-end gap-3 md:col-span-3">
-              <button
-                className="btn rounded-2xl"
-                onClick={() => setEditing(null)}
-              >
+              <button className="btn rounded-2xl" onClick={() => setEditing(null)}>
                 Отмена
               </button>
 
@@ -296,7 +331,7 @@ export default function WeeklyPlan() {
         </div>
       )}
 
-      {/* Список тренировки по дням */}
+      {/* ТАБЛИЦА НЕДЕЛИ */}
       <div className="card-dark rounded-2xl overflow-hidden">
         {isLoading ? (
           <div className="p-4">Загрузка...</div>
@@ -309,12 +344,10 @@ export default function WeeklyPlan() {
                 <th></th>
               </tr>
             </thead>
+
             <tbody>
               {dates.map((date) => (
-                <tr
-                  key={date}
-                  className="border-b border-[var(--color-border)]"
-                >
+                <tr key={date} className="border-b border-[var(--color-border)]">
                   <td className="px-4 py-3 font-semibold">{date}</td>
 
                   <td className="px-4 py-3 space-y-2">
@@ -324,7 +357,8 @@ export default function WeeklyPlan() {
                       grouped[date].map((t) => (
                         <div
                           key={t.id}
-                          className="bg-[var(--color-surface)] p-3 rounded-xl flex justify-between"
+                          className="bg-[var(--color-surface)]
+                                     p-3 rounded-xl flex justify-between"
                         >
                           <div>
                             <b>{t.time || "—"}</b> — {t.type}
@@ -334,10 +368,7 @@ export default function WeeklyPlan() {
                             </div>
                           </div>
 
-                          <button
-                            className="btn-xs"
-                            onClick={() => setEditing(t)}
-                          >
+                          <button className="btn-xs" onClick={() => setEditing(t)}>
                             Изм.
                           </button>
                         </div>

@@ -3,20 +3,20 @@ import { NavLink } from 'react-router-dom'
 
 export function Sidebar() {
   const links = [
-    { path: '/dashboard', label: 'Главное меню' },
-    { path: '/athletes', label: 'Список спортсменов' },
-    { path: '/weekly-plan', label: 'Неделя' },
-    { path: '/attendance', label: 'Посещаемость' },
-    { path: '/injuries', label: 'Травмы' },
-    { path: '/nutrition', label: 'Питание' },
-    { path: '/reports', label: 'Отчёты' },
+    { path: '/dashboard', label: 'Дашборд' },
+    { path: '/athletes', label: 'Спортсмены' },
+    { path: '/weekly-plan', label: 'План недели' },
+    { path: '/attendance', label: 'Посещения' },
+    { path: '/injuries', label: 'Состояние здоровья' },
+    { path: '/nutrition', label: 'Рацион' },
+    { path: '/reports', label: 'Аналитика' },
   ]
 
   return (
     <aside className="w-60 bg-[var(--color-bg)] border-r border-[var(--color-border)] flex flex-col">
-      {/* Только слово "Меню" */}
+      {/* Заголовок */}
       <div className="px-4 pt-4 pb-2 text-sm font-semibold text-[var(--color-text)]/70 tracking-wide">
-        Меню
+        Навигация
       </div>
 
       <nav className="flex flex-col gap-1 px-4 pb-4">
