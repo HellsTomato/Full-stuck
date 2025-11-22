@@ -17,6 +17,7 @@ public class Athlete {
     @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
 
+    // ВАЖНО: фронт отправляет "group", но в БД колонка "grp"
     @Column(name = "grp", nullable = false)
     private String grp;
 
@@ -25,9 +26,9 @@ public class Athlete {
     @Column(columnDefinition = "text")
     private String notes;
 
-    private String status = "active";
-
-    // Getters / setters
+    // -------------------------------------------------------------------
+    // Getters and Setters
+    // -------------------------------------------------------------------
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -45,7 +46,4 @@ public class Athlete {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
 }

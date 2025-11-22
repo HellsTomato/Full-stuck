@@ -16,37 +16,52 @@ public class AthleteController {
 
     private final AthleteRepo repository;
 
+    // --------------------------------------------------------------
+    // GET /api/athletes?search=&group=
+    // Полный поиск: по ФИО (LIKE) + по группе
+    // --------------------------------------------------------------
     @GetMapping
     public List<Athlete> list(
-            @RequestParam(value = "group", required = false) String grp,
-            @RequestParam(value = "status", required = false) String status,
-            @RequestParam(value = "q", required = false) String q
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "group", required = false) String group
     ) {
-        // если q пустая или null — не фильтруем по имени
-        String pattern = (q == null || q.isBlank())
+        String pattern = (search == null || search.isBlank())
                 ? null
-                : "%" + q.toLowerCase() + "%";
+                : "%" + search.toLowerCase() + "%";
 
-        return repository.search(grp, status, pattern);
+        return repository.search(group, pattern);
     }
 
+    // --------------------------------------------------------------
+    // POST — создание спортсмена
+    // --------------------------------------------------------------
     @PostMapping
     public Athlete create(@RequestBody Athlete athlete) {
         if (athlete.getId() == null) {
             athlete.setId(UUID.randomUUID());
         }
-        if (athlete.getStatus() == null) {
-            athlete.setStatus("active");
-        }
         return repository.save(athlete);
     }
 
-    @PutMapping("/{id}")
-    public Athlete update(@PathVariable UUID id, @RequestBody Athlete athlete) {
-        athlete.setId(id);
-        return repository.save(athlete);
+    // --------------------------------------------------------------
+    // PATCH — частичное обновление
+    // --------------------------------------------------------------
+    @PatchMapping("/{id}")
+    public Athlete patch(@PathVariable UUID id, @RequestBody Athlete body) {
+        Athlete existing = repository.findById(id).orElseThrow();
+
+        if (body.getFullName() != null) existing.setFullName(body.getFullName());
+        if (body.getBirthDate() != null) existing.setBirthDate(body.getBirthDate());
+        if (body.getGrp() != null) existing.setGrp(body.getGrp());
+        if (body.getPhone() != null) existing.setPhone(body.getPhone());
+        if (body.getNotes() != null) existing.setNotes(body.getNotes());
+
+        return repository.save(existing);
     }
 
+    // --------------------------------------------------------------
+    // DELETE
+    // --------------------------------------------------------------
     @DeleteMapping("/{id}")
     public void delete(@PathVariable UUID id) {
         repository.deleteById(id);

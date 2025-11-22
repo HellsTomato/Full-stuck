@@ -11,14 +11,15 @@ import java.util.UUID;
 public interface AthleteRepo extends JpaRepository<Athlete, UUID> {
 
     @Query(value = """
-            select a.*
-            from athletes a
-            where (:grp is null or a.grp = :grp)
-              and (:status is null or a.status = :status)
-              and (:search is null or lower(a.full_name) like :search)
+            SELECT *
+            FROM athletes
+            WHERE (:grp IS NULL OR grp = :grp)
+              AND (:search IS NULL OR LOWER(full_name) LIKE :search)
+            ORDER BY full_name ASC
             """,
             nativeQuery = true)
-    List<Athlete> search(@Param("grp") String grp,
-                         @Param("status") String status,
-                         @Param("search") String search);
+    List<Athlete> search(
+            @Param("grp") String group,
+            @Param("search") String search
+    );
 }
