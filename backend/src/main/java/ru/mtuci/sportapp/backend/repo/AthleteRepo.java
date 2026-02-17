@@ -13,7 +13,12 @@ public interface AthleteRepo extends JpaRepository<Athlete, UUID> {
     @Query(value = """
             SELECT *
             FROM athletes
-            WHERE (:grp IS NULL OR grp = :grp)
+            WHERE (
+                      :grp IS NULL
+                  OR  LOWER(TRIM(grp)) = LOWER(TRIM(:grp))
+                  OR (:grp = 'JUNIORS' AND LOWER(TRIM(grp)) IN ('юниоры', 'juniors'))
+                  OR (:grp = 'SENIORS' AND LOWER(TRIM(grp)) IN ('старшие', 'seniors'))
+            )
               AND (:search IS NULL OR LOWER(full_name) LIKE :search)
             ORDER BY full_name ASC
             """,

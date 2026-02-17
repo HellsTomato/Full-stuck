@@ -8,14 +8,13 @@ export function Sidebar() {
     { path: '/weekly-plan', label: 'План недели' },
     { path: '/attendance', label: 'Посещения' },
     { path: '/injuries', label: 'Состояние здоровья' },
-    { path: '/nutrition', label: 'Рацион' },
+    { path: '/ration', label: 'Рацион' },
     { path: '/reports', label: 'Аналитика' },
   ]
 
   return (
-    <aside className="w-60 bg-[var(--color-bg)] border-r border-[var(--color-border)] flex flex-col">
-      {/* Заголовок */}
-      <div className="px-4 pt-4 pb-2 text-sm font-semibold text-[var(--color-text)]/70 tracking-wide">
+    <aside className="flex h-full w-60 flex-col border-r border-[var(--color-border)] bg-[var(--color-bg)]">
+      <div className="px-4 pt-4 pb-2 text-sm font-semibold tracking-wide text-[var(--color-text)]/70">
         Навигация
       </div>
 
@@ -25,11 +24,10 @@ export function Sidebar() {
             key={link.path}
             to={link.path}
             className={({ isActive }) =>
-              `px-3 py-2 rounded-md text-sm transition-all duration-150 ${
-                isActive
-                  ? 'bg-[var(--color-primary)] text-white shadow'
-                  : 'text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]'
-              }`
+              'px-3 py-2 rounded-md text-sm transition-all duration-150 ' +
+              (isActive
+                ? 'bg-[var(--color-primary)] text-white shadow'
+                : 'text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]')
             }
           >
             {link.label}

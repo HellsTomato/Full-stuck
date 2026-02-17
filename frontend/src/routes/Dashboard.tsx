@@ -1,38 +1,49 @@
-// src/routes/Dashboard.tsx
+// frontend/src/routes/Dashboard.tsx
+
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchWeekPlan } from "@/services/weeklyPlan";
 import { getAttendance } from "@/services/attendance";
 import { getAthletes } from "@/services/athletes";
 import { useNavigate } from "react-router-dom";
+import type { Attendance } from "@/types";
 
 // ===== ДАТЫ =====
+
+// Превращаем Date в строку формата YYYY-MM-DD
 function iso(d: Date) {
   return d.toISOString().slice(0, 10);
 }
+
+// Сегодняшняя дата в формате YYYY-MM-DD
 function isoToday() {
   return iso(new Date());
 }
+
+// Находим понедельник для недели, в которую входит date
 function mondayOf(date = new Date()) {
   const d = new Date(date);
-  const day = d.getDay(); // 0-6
-  const diff = (day === 0 ? -6 : 1) - day; // Пн - текущий день
+  const day = d.getDay(); // 0 (ВС) - 6 (СБ)
+  const diff = (day === 0 ? -6 : 1) - day; // сдвиг до понедельника
   d.setDate(d.getDate() + diff);
   return d.toISOString().slice(0, 10);
 }
 
+// Короткие обозначения дней
 const DAYS = ["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"];
 
 // ===== ГРУППЫ =====
+
+// Лейблы для отображения
 const GROUP_LABELS: Record<string, string> = {
   JUNIORS: "Юниоры",
   SENIORS: "Старшие",
 };
 
-// Dashboard и WeeklyPlan — ДОЛЖНЫ использовать один и тот же ключ
+// Ключ в localStorage — тот же, что и у WeeklyPlan
 const GROUP_KEY = "weeklyPlan.groupFilter";
 
-// нормализация даты
+// Обрезаем дату до YYYY-MM-DD (если вдруг с временем)
 function normalizeDateStr(value: string | undefined | null): string | null {
   if (!value) return null;
   return value.slice(0, 10);
@@ -41,33 +52,36 @@ function normalizeDateStr(value: string | undefined | null): string | null {
 export default function Dashboard() {
   const nav = useNavigate();
 
-  const today = isoToday();
-  const weekStart = mondayOf();
+  const today = isoToday();      // сегодня
+  const weekStart = mondayOf();  // понедельник текущей недели
 
-  // ===== ЧИТАЕМ ГРУППУ ТАК ЖЕ, КАК WeeklyPlan =====
+  // Читаем выбранную группу из localStorage
   const storedGroup =
-    (typeof window !== "undefined" && window.localStorage.getItem(GROUP_KEY)) ||
+    (typeof window !== "undefined" &&
+      window.localStorage.getItem(GROUP_KEY)) ||
     "ALL";
 
-  // ===== Загружаем спортсменов, чтобы построить список групп =====
+  // ===== СПОРТСМЕНЫ (чтобы собрать группы, если надо где-то ещё использовать) =====
   const { data: athletes } = useQuery({
     queryKey: ["athletes"],
     queryFn: () => getAthletes({}),
   });
 
+  // Уникальные группы из списка спортсменов
   const groups = useMemo(() => {
     const set = new Set<string>();
     (athletes?.items || []).forEach((a: any) => set.add(a.group));
     return Array.from(set);
   }, [athletes]);
 
-  // ===== Загружаем недельный план =====
+  // ===== НЕДЕЛЬНЫЙ ПЛАН =====
   const { data: trainings = [] } = useQuery({
     queryKey: ["weekly", weekStart, storedGroup],
+    // fetchWeekPlan ожидает (weekStart, groupCode)
     queryFn: () => fetchWeekPlan(weekStart, storedGroup),
   });
 
-  // ===== Фильтруем тренировки по группе, ТАК ЖЕ как WeeklyPlan =====
+  // Находим тренировку на сегодня для выбранной группы
   const todaySession = useMemo(() => {
     return trainings.find((t: any) => {
       const d = normalizeDateStr(t.date);
@@ -78,26 +92,36 @@ export default function Dashboard() {
     });
   }, [trainings, storedGroup, today]);
 
-  // ===== ПОСЕЩАЕМОСТЬ =====
-  const { data: attendance } = useQuery({
-    queryKey: ["attendance", today, storedGroup],
+  // ===== ПОСЕЩАЕМОСТЬ НА СЕГОДНЯ =====
+
+  // Для "ALL" мы не передаём group вообще — бэк вернёт посещаемость по всем группам,
+  // у которых сегодня есть тренировка.
+  const effectiveGroupForAttendance =
+    storedGroup === "ALL" ? undefined : storedGroup;
+
+  const { data: attendanceItems = [] } = useQuery<Attendance[]>({
+    // В ключ кладём today + effectiveGroup, чтобы кэш различал группы
+    queryKey: ["attendance", today, effectiveGroupForAttendance ?? "ALL"],
     queryFn: () =>
       getAttendance({
         date: today,
-        group: storedGroup === "ALL" ? "JUNIORS" : storedGroup,
+        group: effectiveGroupForAttendance,
       }),
   });
 
-  const present =
-    attendance?.items?.filter(
-      (x: any) => x.status === "Присутствовал" || x.status === "Опоздал"
-    ).length || 0;
+  // Считаем количество по енамам (PRESENT / LATE / ABSENT),
+  // которые мы нормализовали в сервисе attendance.ts
+  const present = attendanceItems.filter(
+    (x) => x.status === "PRESENT"
+  ).length;
 
-  const absent =
-    attendance?.items?.filter((x: any) => x.status === "Отсутствовал")
-      .length || 0;
+  const late = attendanceItems.filter((x) => x.status === "LATE").length;
 
-  // ===== ДНИ НЕДЕЛИ =====
+  const absent = attendanceItems.filter(
+    (x) => x.status === "ABSENT"
+  ).length;
+
+  // ===== ДНИ НЕДЕЛИ (для маленького календаря справа) =====
   const weekCells = useMemo(() => {
     const base = new Date(today);
     return Array.from({ length: 7 }).map((_, i) => {
@@ -123,16 +147,16 @@ export default function Dashboard() {
     });
   }, [trainings, storedGroup, today]);
 
-  // ===== изменение группы =====
+  // Смена группы — синхронизируем с WeeklyPlan через localStorage
   const changeGroup = (g: string) => {
     window.localStorage.setItem(GROUP_KEY, g);
-    window.location.reload(); // перерисовываем Dashboard с новой группой
+    window.location.reload(); // перерисуем Dashboard с новой группой
   };
 
   return (
     <div className="p-4 md:p-6 space-y-4 text-[var(--color-text)]">
       <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-4">
-        {/* ===== СЕГОДНЯШНЯЯ ТРЕНИРОВКА ===== */}
+        {/* ===== ЛЕВАЯ КАРТОЧКА: СЕГОДНЯШНЯЯ ТРЕНИРОВКА ===== */}
         <div className="card-dark">
           <div className="px-4 py-2 border-b border-[var(--color-border)] text-sm font-semibold flex justify-between">
             <span>Сегодняшняя тренировка</span>
@@ -163,6 +187,10 @@ export default function Dashboard() {
                   Присутствуют: <b>{present}</b>
                 </div>
 
+                <div className="mb-1">
+                  Опоздали: <b>{late}</b>
+                </div>
+
                 <div className="mb-2">
                   Отсутствуют: <b>{absent}</b>
                 </div>
@@ -183,7 +211,7 @@ export default function Dashboard() {
 
         {/* ===== ПРАВАЯ КОЛОНКА ===== */}
         <div className="space-y-3">
-          {/* выбор группы */}
+          {/* Выбор группы */}
           <div className="card-dark p-3 flex items-center gap-2">
             <label className="text-sm opacity-70">Группа:</label>
             <select
@@ -197,7 +225,7 @@ export default function Dashboard() {
             </select>
           </div>
 
-          {/* неделя */}
+          {/* Недельный мини-календарь */}
           <div className="card-dark">
             <div className="px-4 py-2 border-b text-sm font-semibold opacity-70">
               Неделя

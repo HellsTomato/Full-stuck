@@ -27,13 +27,19 @@ export type Attendance = {
   comment?: string;
 };
 
+export type InjuryStatus = 'ACTIVE' | 'CLOSED'
+
 export type Injury = {
-  id: string;
-  athleteId: string;
-  kind: string;
-  date: string;
-  status: "Активная" | "Закрыта";
-  recommendations?: string;
+  id: number
+  athleteId: string
+  fullName: string
+  group: string
+  birthDate?: string | null
+  type: string
+  date: string
+  status: InjuryStatus
+  closedDate?: string | null
+  notes?: string | null
 };
 
 export type Nutrition = {

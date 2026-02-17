@@ -1,59 +1,51 @@
 // src/main.tsx — точка входа фронтенда тренера
 
-import React from 'react'                                        // React — библиотека для UI
-import ReactDOM from 'react-dom/client'                          // ReactDOM — рендер в DOM
+import React from 'react'
+import ReactDOM from 'react-dom/client'
 import {
-  createBrowserRouter,                                           // createBrowserRouter — новый API роутинга
-  RouterProvider,                                                // RouterProvider — провайдер роутера
-  Navigate,                                                      // Navigate — программный редирект
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
 } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query' // QueryClient — клиент для React Query
-import App from './App'                                          // App — корневой layout с навигацией
-import './styles/tailwind.css'                                  // tailwind.css — глобальные стили
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import App from './App'
+import './styles/tailwind.css'
 
-// провайдеры
-import { AuthProvider } from '@/context/auth'                    // AuthProvider — контекст авторизации
-import { ToastProvider } from '@/components/Toast'               // ToastProvider — всплывающие уведомления
+import { AuthProvider } from '@/context/auth'
+import { ToastProvider } from '@/components/Toast'
 
-// ленивые страницы основного приложения (защищённые роуты для тренера)
+// ленивые страницы
 const TrainerProfile = React.lazy(() => import('./routes/TrainerProfile'))
-const Dashboard      = React.lazy(() => import('./routes/Dashboard'))       // Dashboard — главная панель
-const Athletes       = React.lazy(() => import('./routes/Athletes'))        // Athletes — список спортсменов
-const AthleteProfile = React.lazy(() => import('./routes/AthleteProfile'))  // AthleteProfile — профиль спортсмена
-const WeeklyPlan     = React.lazy(() => import('./routes/WeeklyPlan'))      // WeeklyPlan — недельный план
-const Attendance     = React.lazy(() => import('./routes/Attendance'))      // Attendance — посещаемость
-const Injuries       = React.lazy(() => import('./routes/Injuries'))        // Injuries — травмы
-const InjuriesDetail = React.lazy(() => import('./routes/InjuriesDetail'))  // InjuriesDetail — детали травмы
-const Nutrition      = React.lazy(() => import('./routes/Nutrition'))       // Nutrition — питание
-const Reports        = React.lazy(() => import('./routes/Reports'))         // Reports — отчёты
+const Dashboard = React.lazy(() => import('./routes/Dashboard'))
+const Athletes = React.lazy(() => import('./routes/Athletes'))
+const AthleteProfile = React.lazy(() => import('./routes/AthleteProfile'))
+const WeeklyPlan = React.lazy(() => import('./routes/WeeklyPlan'))
+const Attendance = React.lazy(() => import('./routes/Attendance'))
+const Injuries = React.lazy(() => import('./routes/Injuries'))
+const InjuriesDetail = React.lazy(() => import('./routes/InjuriesDetail'))
+const RationPage = React.lazy(() => import('./routes/RationPage'))
+const AthleteRationPage = React.lazy(() => import('./routes/AthleteRationPage'))
+const Reports = React.lazy(() => import('./routes/Reports'))
 
-// страницы логина/регистрации (открытые роуты)
-const LoginPage    = React.lazy(() => import('./routes/LoginPage'))         // LoginPage — вход тренера
-const RegisterPage = React.lazy(() => import('./routes/RegisterPage'))      // RegisterPage — регистрация тренера
+const LoginPage = React.lazy(() => import('./routes/LoginPage'))
+const RegisterPage = React.lazy(() => import('./routes/RegisterPage'))
 
-// маршруты ошибок
-import ErrorPage from './routes/ErrorPage'                                  // ErrorPage — общая ошибка роутера
-import NotFound from './routes/NotFound'                                    // NotFound — 404
+import ErrorPage from './routes/ErrorPage'
+import NotFound from './routes/NotFound'
+import PrivateRoute from './routes/PrivateRoute'
 
-// защищающий компонент
-import PrivateRoute from './routes/PrivateRoute'                            // PrivateRoute — пускает только с токеном
-
-// ---------- Роутер приложения ----------
-
-// router — единая конфигурация всех маршрутов
 const router = createBrowserRouter([
-  // ОТКРЫТЫЕ МАРШРУТЫ: логин и регистрация
   {
-    path: '/login',                                                         // /login — страница входа
+    path: '/login',
     element: (
-      <React.Suspense fallback={<div>Загрузка…</div>}>                      {/* Suspense — ленивая загрузка */}
+      <React.Suspense fallback={<div>Загрузка…</div>}>
         <LoginPage />
       </React.Suspense>
     ),
-    errorElement: <ErrorPage />,                                            // ErrorPage — при ошибке рендера
+    errorElement: <ErrorPage />,
   },
   {
-    path: '/register',                                                      // /register — регистрация тренера
+    path: '/register',
     element: (
       <React.Suspense fallback={<div>Загрузка…</div>}>
         <RegisterPage />
@@ -61,23 +53,21 @@ const router = createBrowserRouter([
     ),
     errorElement: <ErrorPage />,
   },
-
-  // ЗАЩИЩЁННЫЙ БЛОК: всё приложение тренера — только после авторизации
   {
-    path: '/',                                                              // базовый путь
-    element: <PrivateRoute />,                                              // PrivateRoute — проверяет токен и даёт Outlet
+    path: '/',
+    element: <PrivateRoute />,
     errorElement: <ErrorPage />,
     children: [
       {
-        path: '/',                                                          // внутри PrivateRoute рендерим App
-        element: <App />,                                                   // App — layout с хедером/меню и <Outlet/>
+        path: '/',
+        element: <App />,
         children: [
-          {                                                                 // редирект с корня на /dashboard
-            index: true,                                                    // index — маршрут по умолчанию
-            element: <Navigate to="/dashboard" replace />,                  // Navigate — перенаправление
+          {
+            index: true,
+            element: <Navigate to="/dashboard" replace />,
           },
           {
-            path: 'dashboard',                                              // /dashboard — главная панель
+            path: 'dashboard',
             element: (
               <React.Suspense fallback={<div>Загрузка…</div>}>
                 <Dashboard />
@@ -85,7 +75,7 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'athletes',                                               // /athletes — список спортсменов
+            path: 'athletes',
             element: (
               <React.Suspense fallback={<div>Загрузка…</div>}>
                 <Athletes />
@@ -93,7 +83,7 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'athletes/:id',                                           // /athletes/:id — профиль спортсмена
+            path: 'athletes/:id',
             element: (
               <React.Suspense fallback={<div>Загрузка…</div>}>
                 <AthleteProfile />
@@ -101,7 +91,7 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'weekly-plan',                                            // /weekly-plan — недельный план
+            path: 'weekly-plan',
             element: (
               <React.Suspense fallback={<div>Загрузка…</div>}>
                 <WeeklyPlan />
@@ -109,7 +99,7 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'attendance',                                             // /attendance — посещаемость
+            path: 'attendance',
             element: (
               <React.Suspense fallback={<div>Загрузка…</div>}>
                 <Attendance />
@@ -117,7 +107,7 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'injuries',                                               // /injuries — список травм
+            path: 'injuries',
             element: (
               <React.Suspense fallback={<div>Загрузка…</div>}>
                 <Injuries />
@@ -125,7 +115,7 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'injuries/:id',                                           // /injuries/:id — детали травмы
+            path: 'injuries/:id',
             element: (
               <React.Suspense fallback={<div>Загрузка…</div>}>
                 <InjuriesDetail />
@@ -133,15 +123,23 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'nutrition',                                              // /nutrition — питание
+            path: 'ration',
             element: (
               <React.Suspense fallback={<div>Загрузка…</div>}>
-                <Nutrition />
+                <RationPage />
               </React.Suspense>
             ),
           },
           {
-            path: 'reports',                                                // /reports — отчёты
+            path: 'ration/athlete/:athleteId',
+                        element: (
+                          <React.Suspense fallback={<div>Загрузка…</div>}>
+                            <AthleteRationPage />
+                          </React.Suspense>
+                        ),
+                      },
+          {
+            path: 'reports',
             element: (
               <React.Suspense fallback={<div>Загрузка…</div>}>
                 <Reports />
@@ -156,10 +154,9 @@ const router = createBrowserRouter([
               </React.Suspense>
             ),
           },
-          // 404 внутри приложения тренера
           {
-            path: '*',                                                      // любой неизвестный путь внутри App
-            element: <NotFound />,                                          // NotFound — страница “Не найдено”
+            path: '*',
+            element: <NotFound />,
           },
         ],
       },
@@ -167,18 +164,14 @@ const router = createBrowserRouter([
   },
 ])
 
-// ---------- Инициализация React Query ----------
-
-const qc = new QueryClient()                                               // qc — экземпляр клиента React Query
-
-// ---------- Рендер приложения ----------
+const qc = new QueryClient()
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>                                                       {/* StrictMode — доп. проверки в dev */}
-    <QueryClientProvider client={qc}>                                      {/* QueryClientProvider — кэш запросов */}
-      <AuthProvider>                                                       {/* AuthProvider — контекст авторизации */}
-        <ToastProvider>                                                    {/* ToastProvider — уведомления/тосты */}
-          <RouterProvider router={router} />                               {/* RouterProvider — подключаем роутер */}
+  <React.StrictMode>
+    <QueryClientProvider client={qc}>
+      <AuthProvider>
+        <ToastProvider>
+          <RouterProvider router={router} />
         </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>

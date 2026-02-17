@@ -66,7 +66,7 @@ export default function WeeklyPlan() {
     useState<TrainingGroup>("ALL");
 
   // -------------------------------------------------------------
-  // Буфер копирования недели 🔥
+  // Буфер копирования недели
   // -------------------------------------------------------------
   const [copiedWeek, setCopiedWeek] = useState<string | null>(null);
 
