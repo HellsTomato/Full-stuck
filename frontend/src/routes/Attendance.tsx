@@ -12,6 +12,7 @@ import {
   postAttendanceBulk,
   type AttendanceBulkItem,
 } from '@/services/attendance'
+import { useAuth } from '@/context/auth'
 
 // Тип статуса из доменной модели
 type AttendanceStatus = Attendance['status']
@@ -42,6 +43,8 @@ function getGroupLabel(value?: string): string {
 }
 
 export default function AttendancePage() {
+  const { role } = useAuth()
+  const isTrainer = role === 'TRAINER'
   // выбранная дата
   const [date, setDate] = useState<string>(() => getTodayISO())
   // выбранная группа (по умолчанию — юниоры)
@@ -52,7 +55,7 @@ export default function AttendancePage() {
   const [isDirty, setIsDirty] = useState(false)
   // карта "athleteId -> сохранённый статус", чтобы знать, что уже лежит в БД
   const [savedStatusMap, setSavedStatusMap] = useState<
-    Record<number, AttendanceStatus>
+    Record<string, AttendanceStatus>
   >({})
 
   const queryClient = useQueryClient()
@@ -83,7 +86,7 @@ export default function AttendancePage() {
     setRows(serverRows)
     setIsDirty(false)
 
-    const map: Record<number, AttendanceStatus> = {}
+    const map: Record<string, AttendanceStatus> = {}
     serverRows.forEach((r) => {
       map[r.athleteId] = r.status
     })
@@ -112,7 +115,7 @@ export default function AttendancePage() {
       setIsDirty(false)
 
       // Обновляем сохранённые статусы — теперь они совпадают с тем, что в БД
-      const map: Record<number, AttendanceStatus> = {}
+      const map: Record<string, AttendanceStatus> = {}
       updatedRows.forEach((r) => {
         map[r.athleteId] = r.status
       })
@@ -128,7 +131,8 @@ export default function AttendancePage() {
   // ─────────────────────────────────────────────
 
   // Клик по кнопке статуса
-  const handleStatusClick = (athleteId: number, status: AttendanceStatus) => {
+  const handleStatusClick = (athleteId: string, status: AttendanceStatus) => {
+    if (!isTrainer) return
     setRows((prev) =>
       prev.map((row) =>
         row.athleteId === athleteId ? { ...row, status } : row
@@ -140,6 +144,7 @@ export default function AttendancePage() {
 
   // "Сохранить изменения"
   const handleSave = () => {
+    if (!isTrainer) return
     if (saveMutation.isPending || !isDirty) return
     saveMutation.mutate()
   }
@@ -208,10 +213,10 @@ export default function AttendancePage() {
           <button
             type="button"
             onClick={handleSave}
-            disabled={!isDirty || saveMutation.isPending || rows.length === 0}
+            disabled={!isTrainer || !isDirty || saveMutation.isPending || rows.length === 0}
             className={[
               'rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition',
-              isDirty && !saveMutation.isPending && rows.length > 0
+              isTrainer && isDirty && !saveMutation.isPending && rows.length > 0
                 ? 'bg-violet-500 text-white hover:bg-violet-600'
                 : 'bg-slate-700 text-slate-300 cursor-not-allowed',
             ].join(' ')}
@@ -243,6 +248,12 @@ export default function AttendancePage() {
         )}
 
         {!isLoading && !isError && rows.length > 0 && (
+          <>
+          {!isTrainer && (
+            <div className="px-4 py-3 text-xs text-slate-400 border-b border-slate-800">
+              Для роли атлета доступен только просмотр посещаемости.
+            </div>
+          )}
           <table className="min-w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-slate-800 bg-slate-900/80">
@@ -347,6 +358,7 @@ export default function AttendancePage() {
               })}
             </tbody>
           </table>
+          </>
         )}
       </section>
     </div>

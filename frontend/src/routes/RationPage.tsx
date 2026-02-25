@@ -11,6 +11,7 @@ import {
   type RationGroupFilter,
   applyLocalToSummary,
 } from '@/services/ration'
+import { formatTrainingGroup } from '@/utils/groupLabels'
 
 dayjs.locale('ru')
 
@@ -167,7 +168,7 @@ const RationPage = () => {
 
               const athleteLink = `/ration/athlete/${row.athleteId}?date=${date}&fullName=${encodeURIComponent(
                 row.fullName,
-              )}&groupName=${encodeURIComponent(row.groupName ?? '')}`
+              )}&groupName=${encodeURIComponent(formatTrainingGroup(row.groupName))}`
 
               return (
                 <tr
@@ -182,7 +183,7 @@ const RationPage = () => {
                       {row.fullName}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-slate-300">{row.groupName}</td>
+                  <td className="px-4 py-3 text-slate-300">{formatTrainingGroup(row.groupName)}</td>
                   <td className="px-4 py-3 text-slate-200">{statusText}</td>
                   <td className="px-4 py-3 text-slate-200">{weightText}</td>
                   <td className="px-4 py-3 text-slate-300 max-w-[260px]">

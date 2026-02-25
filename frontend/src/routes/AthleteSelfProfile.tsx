@@ -1,0 +1,263 @@
+import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/auth";
+import {
+  getMyAthlete,
+  updateMyAthlete,
+  uploadMyAthletePhoto,
+} from "@/services/athletes";
+import type { Athlete } from "@/types";
+import { formatTrainingGroup } from "@/utils/groupLabels";
+
+export default function AthleteSelfProfile() {
+  const { role, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const [profile, setProfile] = useState<Athlete | null>(null);
+  const [editData, setEditData] = useState<Athlete | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+
+    getMyAthlete()
+      .then((data) => {
+        setProfile(data);
+        setEditData(data);
+      })
+      .catch((e) => {
+        console.error(e);
+        setError("Не удалось загрузить профиль");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (role !== "ATHLETE") {
+    return <div className="p-4 text-[var(--color-text)]">Доступ запрещён</div>;
+  }
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const handleBack = () => {
+    navigate("/dashboard");
+  };
+
+  const handleChange = (field: keyof Athlete, value: string) => {
+    if (!editData) return;
+    setEditData({ ...editData, [field]: value });
+  };
+
+  const handleSave = async () => {
+    if (!editData) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await updateMyAthlete(editData);
+      setProfile(updated);
+      setEditData(updated);
+      setIsEditing(false);
+    } catch (e) {
+      console.error(e);
+      setError("Ошибка при сохранении профиля");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChoosePhoto = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+
+    try {
+      setPhotoUploading(true);
+      const updated = await uploadMyAthletePhoto(file);
+      setProfile(updated);
+      setEditData(updated);
+    } catch (e) {
+      console.error(e);
+      setError("Не удалось загрузить фото");
+    } finally {
+      setPhotoUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  if (loading) {
+    return <div className="p-6 text-[var(--color-text)]">Загрузка профиля…</div>;
+  }
+
+  if (!profile || !editData) {
+    return <div className="p-6 text-[var(--color-text)]">Профиль не найден</div>;
+  }
+
+  const displayName = editData.fullName || "Атлет";
+  const initials = (displayName && displayName.trim()[0]?.toUpperCase()) || "?";
+  const avatarSrc = editData.photoUrl ? `/api/athletes/photo/${editData.photoUrl}` : null;
+
+  return (
+    <div className="p-6 space-y-6 text-[var(--color-text)]">
+      <div className="flex items-center justify-between">
+        <button
+          onClick={handleBack}
+          className="btn-outline text-xs px-3 py-1.5 rounded-2xl"
+        >
+          ← Назад
+        </button>
+        <button
+          onClick={handleLogout}
+          className="btn-danger text-xs px-3 py-1.5 rounded-2xl"
+        >
+          Выйти
+        </button>
+      </div>
+
+      <div className="card-dark p-4 flex flex-col md:flex-row gap-6 items-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-24 h-24 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center overflow-hidden">
+            {avatarSrc ? (
+              <img src={avatarSrc} alt="Фото атлета" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-3xl font-semibold text-[var(--color-text)]">{initials}</span>
+            )}
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={handleChoosePhoto}
+              disabled={photoUploading}
+              className="btn-outline text-xs px-3 py-1.5 rounded-2xl disabled:opacity-60"
+            >
+              {photoUploading ? "Загрузка…" : editData.photoUrl ? "Изменить фото" : "Добавить фото"}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoChange}
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-1">
+          <div className="text-xl font-semibold">{displayName}</div>
+          <div className="text-sm text-[var(--color-muted)]">Логин: {editData.username || "—"}</div>
+        </div>
+
+        <div className="ml-auto flex items-center">
+          {!isEditing ? (
+            <button onClick={() => setIsEditing(true)} className="btn text-sm rounded-2xl px-4 py-2">
+              Редактировать профиль
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="btn text-sm rounded-2xl px-4 py-2 disabled:opacity-60"
+              >
+                {saving ? "Сохраняем…" : "Сохранить"}
+              </button>
+              <button
+                onClick={() => {
+                  setEditData(profile);
+                  setIsEditing(false);
+                }}
+                className="btn-outline text-sm rounded-2xl px-4 py-2"
+              >
+                Отмена
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {error && <div className="text-sm text-red-400">{error}</div>}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+        <div className="card-dark p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-[var(--color-muted)] mb-1">Полное имя</label>
+            <input
+              type="text"
+              value={editData.fullName ?? ""}
+              onChange={(e) => handleChange("fullName", e.target.value)}
+              disabled={!isEditing}
+              className="w-full rounded-lg px-3 py-2 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-muted)] disabled:bg-[var(--color-bg)] disabled:opacity-70 outline-none focus:border-[var(--color-primary)]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-[var(--color-muted)] mb-1">Дата рождения</label>
+            <input
+              type="date"
+              value={editData.birthDate ?? ""}
+              onChange={(e) => handleChange("birthDate", e.target.value)}
+              disabled={!isEditing}
+              className="w-full rounded-lg px-3 py-2 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-muted)] disabled:bg-[var(--color-bg)] disabled:opacity-70 outline-none focus:border-[var(--color-primary)]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-[var(--color-muted)] mb-1">Группа</label>
+            <select
+              value={editData.group ?? ""}
+              onChange={(e) => handleChange("group", e.target.value)}
+              disabled={!isEditing}
+              className="w-full rounded-lg px-3 py-2 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] disabled:bg-[var(--color-bg)] disabled:opacity-70 outline-none focus:border-[var(--color-primary)]"
+            >
+              <option value="">Выберите группу</option>
+              <option value="JUNIORS">Юниоры</option>
+              <option value="SENIORS">Старшие</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="card-dark p-4 space-y-4">
+          <div>
+            <label className="block text-sm text-[var(--color-muted)] mb-1">Телефон</label>
+            <input
+              type="tel"
+              value={editData.phone ?? ""}
+              onChange={(e) => handleChange("phone", e.target.value)}
+              disabled={!isEditing}
+              className="w-full rounded-lg px-3 py-2 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-muted)] disabled:bg-[var(--color-bg)] disabled:opacity-70 outline-none focus:border-[var(--color-primary)]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-[var(--color-muted)] mb-1">Примечания</label>
+            <textarea
+              value={editData.notes ?? ""}
+              onChange={(e) => handleChange("notes", e.target.value)}
+              disabled={!isEditing}
+              className="w-full rounded-lg px-3 py-2 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-muted)] disabled:bg-[var(--color-bg)] disabled:opacity-70 outline-none focus:border-[var(--color-primary)] min-h-[120px]"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="card-dark p-4 space-y-2">
+        <div>
+          <div className="text-xs text-[var(--color-muted)]">Текущая группа</div>
+          <div className="text-base">{formatTrainingGroup(editData.group)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -4,7 +4,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.Data;
+import ru.mtuci.sportapp.backend.security.UserRole;
 import java.util.UUID;
 
 @Entity
@@ -23,6 +26,10 @@ public class Trainer {
 
     @Column(nullable = false)
     private String fullName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role = UserRole.TRAINER;
 
     // ===== новые поля профиля =====
 

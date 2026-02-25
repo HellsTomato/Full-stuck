@@ -1,0 +1,2 @@
+ALTER TABLE athletes
+    ADD COLUMN IF NOT EXISTS photo_url VARCHAR(255);

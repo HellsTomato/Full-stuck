@@ -7,13 +7,17 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import ru.mtuci.sportapp.backend.entity.Trainer;
 import ru.mtuci.sportapp.backend.model.TrainerProfileResponse;
 import ru.mtuci.sportapp.backend.model.TrainerProfileUpdateRequest;
 import ru.mtuci.sportapp.backend.repo.TrainerRepo;
+import ru.mtuci.sportapp.backend.security.AuthPrincipal;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -51,6 +55,11 @@ public class TrainerProfileController {
     public ResponseEntity<TrainerProfileResponse> getProfile(
             @RequestParam String username
     ) {
+        AuthPrincipal principal = currentPrincipal();
+        if (!principal.username().equals(username)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         Optional<Trainer> trainerOpt = trainerRepo.findByUsername(username);
         if (trainerOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -75,6 +84,11 @@ public class TrainerProfileController {
     public ResponseEntity<TrainerProfileResponse> updateProfile(
             @RequestBody TrainerProfileUpdateRequest request
     ) {
+        AuthPrincipal principal = currentPrincipal();
+        if (!principal.username().equals(request.getUsername())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         Optional<Trainer> trainerOpt = trainerRepo.findByUsername(request.getUsername());
         if (trainerOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -109,6 +123,11 @@ public class TrainerProfileController {
             @RequestParam("username") String username,
             @RequestParam("file") MultipartFile file
     ) {
+        AuthPrincipal principal = currentPrincipal();
+        if (!principal.username().equals(username)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
@@ -176,5 +195,13 @@ public class TrainerProfileController {
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    private AuthPrincipal currentPrincipal() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof AuthPrincipal principal)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+        return principal;
     }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/context/auth";
 
 import {
   fetchWeekPlan,
@@ -44,6 +45,8 @@ function getWeekDates(startISO: string): string[] {
 }
 
 export default function WeeklyPlan() {
+  const { role } = useAuth();
+  const isTrainer = role === "TRAINER";
   const qc = useQueryClient();
   const toast = useToast();
 
@@ -200,23 +203,23 @@ export default function WeeklyPlan() {
         </select>
 
         {/* КОПИРОВАТЬ */}
-        <button className="btn rounded-2xl" onClick={handleCopy}>
+        <button className="btn rounded-2xl" onClick={handleCopy} disabled={!isTrainer}>
           Копировать неделю
         </button>
 
         {/* ВСТАВИТЬ */}
         <button
           className="btn rounded-2xl"
-          disabled={!copiedWeek}
+          disabled={!copiedWeek || !isTrainer}
           onClick={handlePaste}
-          style={{ opacity: copiedWeek ? 1 : 0.4 }}
+          style={{ opacity: copiedWeek && isTrainer ? 1 : 0.4 }}
         >
           Вставить
         </button>
       </div>
 
       {/* Форма редактирования */}
-      {editing && (
+      {isTrainer && editing && (
         <div className="card-dark p-4 space-y-3 rounded-2xl">
           <div className="text-xl font-semibold">
             {editing.id ? "Редактировать тренировку" : "Создать тренировку"}
@@ -379,6 +382,7 @@ export default function WeeklyPlan() {
                   <td className="px-4">
                     <button
                       className="btn-xs"
+                      disabled={!isTrainer}
                       onClick={() =>
                         setEditing({
                           id: undefined,
@@ -400,6 +404,10 @@ export default function WeeklyPlan() {
           </table>
         )}
       </div>
+
+      {!isTrainer && (
+        <div className="text-xs text-[var(--color-muted)]">Для роли атлета доступен только просмотр плана.</div>
+      )}
     </div>
   );
 }

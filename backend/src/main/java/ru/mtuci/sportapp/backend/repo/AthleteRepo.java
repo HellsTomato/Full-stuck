@@ -10,6 +10,8 @@ import java.util.UUID;
 
 public interface AthleteRepo extends JpaRepository<Athlete, UUID> {
 
+        java.util.Optional<Athlete> findByUsername(String username);
+
     @Query(value = """
             SELECT *
             FROM athletes

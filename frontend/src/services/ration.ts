@@ -1,4 +1,5 @@
 // src/services/ration.ts
+import { api } from './client'
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api'
 
@@ -36,18 +37,12 @@ export async function getRationSummary(
     searchParams.set('search', params.search.trim())
   }
 
-  const res = await fetch(`${API_URL}/ration/summary?${searchParams.toString()}`, {
+  return api<RationSummaryRow[]>(`${API_URL}/ration/summary?${searchParams.toString()}`, {
     method: 'GET',
     headers: {
       Accept: 'application/json',
     },
   })
-
-  if (!res.ok) {
-    throw new Error(`Не удалось загрузить данные рациона (${res.status})`)
-  }
-
-  return (await res.json()) as RationSummaryRow[]
 }
 
 // --- Сохранение рациона конкретного спортсмена на конкретный день ---
@@ -65,12 +60,9 @@ export interface SaveRationRequest {
  * body: { date, foodStatus, morningWeight, comment }
  */
 export async function saveRationForDay(req: SaveRationRequest): Promise<void> {
-  const res = await fetch(`${API_URL}/ration/${req.athleteId}/weight`, {
+  await api<void>(`${API_URL}/ration/${req.athleteId}/weight`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
+    headers: { Accept: 'application/json' },
     body: JSON.stringify({
       date: req.date,
       foodStatus: req.foodStatus ?? null,
@@ -78,10 +70,6 @@ export async function saveRationForDay(req: SaveRationRequest): Promise<void> {
       comment: req.notes ?? null,
     }),
   })
-
-  if (!res.ok) {
-    throw new Error(`Не удалось сохранить рацион (${res.status})`)
-  }
 }
 
 // --- Неделя рациона спортсмена (для AthleteProfile.tsx) ---
@@ -121,7 +109,7 @@ export async function getWeeklyRation(
   const searchParams = new URLSearchParams()
   searchParams.set('week', week)
 
-  const res = await fetch(
+  return api<WeeklyRationDto>(
     `${API_URL}/ration/${athleteId}?${searchParams.toString()}`,
     {
       method: 'GET',
@@ -130,12 +118,6 @@ export async function getWeeklyRation(
       },
     },
   )
-
-  if (!res.ok) {
-    throw new Error(`Не удалось загрузить недельный рацион (${res.status})`)
-  }
-
-  return (await res.json()) as WeeklyRationDto
 }
 
 // --- Локальная пост-обработка сводки (пока заглушка, просто проброс) ---

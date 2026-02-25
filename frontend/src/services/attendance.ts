@@ -2,6 +2,7 @@
 
 // Тип Attendance описан в '@/types'
 import type { Attendance } from '@/types'
+import { api } from './client'
 
 // Параметры для загрузки посещаемости с бэкенда
 export type AttendanceGetParams = {
@@ -11,7 +12,7 @@ export type AttendanceGetParams = {
 
 // Тип одного элемента батч-обновления
 export type AttendanceBulkItem = {
-  athleteId: number // ID спортсмена
+  athleteId: string // ID спортсмена
   status: Attendance['status'] // статус берём из типа Attendance
 }
 
@@ -82,16 +83,7 @@ export async function getAttendance(
     search.set('group', params.group)
   }
 
-  const res = await fetch(`/api/attendance?${search.toString()}`)
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(
-      `Ошибка загрузки посещаемости (${res.status}): ${text || 'Unknown error'}`
-    )
-  }
-
-  const json = (await res.json()) as AttendanceListResponse
+  const json = await api<AttendanceListResponse>(`/api/attendance?${search.toString()}`)
   return normalizeResponse(json)
 }
 
@@ -102,17 +94,9 @@ export async function getAttendance(
 export async function postAttendanceBulk(
   payload: AttendanceBulkPayload
 ): Promise<Attendance[]> {
-  const res = await fetch(`/api/attendance/bulk`, {
+  const json = await api<AttendanceListResponse>(`/api/attendance/bulk`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Ошибка сохранения (${res.status}): ${text}`)
-  }
-
-  const json = (await res.json()) as AttendanceListResponse
   return normalizeResponse(json)
 }

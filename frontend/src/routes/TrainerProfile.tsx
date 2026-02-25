@@ -10,11 +10,15 @@ import {
 } from '@/services/trainerProfile'
 
 const TrainerProfilePage: React.FC = () => {
-  const { username, logout } = useAuth()
+  const { username, logout, role } = useAuth()
   const navigate = useNavigate()
 
   const [profile, setProfile] = useState<TrainerProfile | null>(null)
   const [loading, setLoading] = useState(true)
+
+  if (role !== 'TRAINER') {
+    return <div className="p-4 text-[var(--color-text)]">Доступ запрещён</div>
+  }
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isEditing, setIsEditing] = useState(false)

@@ -6,7 +6,7 @@ import { useAuth } from '@/context/auth'
 import { getTrainerProfile, TrainerProfile } from '@/services/trainerProfile'
 
 export default function App() {
-  const { username } = useAuth()
+  const { username, role } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [profile, setProfile] = useState<TrainerProfile | null>(null)
@@ -17,15 +17,19 @@ export default function App() {
       return
     }
 
+    if (role !== 'TRAINER') {
+      setProfile(null)
+      return
+    }
+
     getTrainerProfile(username)
       .then((data) => setProfile(data))
-      .catch((err) => {
-        console.error('Не удалось загрузить профиль в шапке:', err)
+      .catch(() => {
         setProfile(null)
       })
-  }, [username, location.pathname])
+  }, [username, location.pathname, role])
 
-  const handleProfileClick = () => navigate('/trainer-profile')
+  const handleProfileClick = () => navigate(role === 'TRAINER' ? '/trainer-profile' : '/athlete-profile')
 
   const displayName = profile?.fullName || username || ''
   const initials =
@@ -46,7 +50,7 @@ export default function App() {
         {/* Верхняя панель */}
         <header className="flex items-center justify-between px-6 py-3 bg-transparent border-b border-[var(--color-border)] backdrop-blur-md">
           <h1 className="text-xl font-semibold text-[var(--color-text)]/80">
-            Приложение для тренера
+            {role === 'ATHLETE' ? 'Приложение для атлета' : 'Приложение для тренера'}
           </h1>
 
           <div className="flex items-center gap-4">
@@ -66,7 +70,7 @@ export default function App() {
                   {avatarSrc ? (
                     <img
                       src={avatarSrc}
-                      alt="Фото тренера"
+                      alt="Фото профиля"
                       className="w-full h-full object-cover"
                     />
                   ) : (

@@ -2,6 +2,7 @@
 
 // Импортируем общий тип травмы и enum статуса
 import type { Injury, InjuryStatus } from '@/styles/types'
+import { api } from './client'
 
 /**
  * Параметры фильтрации списка травм.
@@ -37,13 +38,7 @@ export async function fetchInjuries(
     qs.set('search', params.search)
   }
 
-  const res = await fetch(`/api/injuries?${qs.toString()}`)
-
-  if (!res.ok) {
-    throw new Error('Ошибка загрузки травм')
-  }
-
-  return (await res.json()) as Injury[]
+  return api<Injury[]>(`/api/injuries?${qs.toString()}`)
 }
 
 /**
@@ -84,18 +79,10 @@ export type CreateInjuryPayload = {
 export async function createInjury(
   payload: CreateInjuryPayload
 ): Promise<Injury> {
-  const res = await fetch('/api/injuries', {
+  return api<Injury>('/api/injuries', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Ошибка создания травмы (${res.status}): ${text}`)
-  }
-
-  return (await res.json()) as Injury
 }
 
 /**
@@ -103,16 +90,7 @@ export async function createInjury(
  * GET /api/injuries/{id}
  */
 export async function fetchInjury(id: number): Promise<Injury> {
-  const res = await fetch(`/api/injuries/${id}`)
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(
-      `Ошибка загрузки травмы (${res.status})${text ? `: ${text}` : ''}`
-    )
-  }
-
-  return (await res.json()) as Injury
+  return api<Injury>(`/api/injuries/${id}`)
 }
 
 /**
@@ -120,15 +98,9 @@ export async function fetchInjury(id: number): Promise<Injury> {
  * DELETE /api/injuries/{id}
  */
 export async function deleteInjury(id: number): Promise<void> {
-  const res = await fetch(`/api/injuries/${id}`, {
+  await api<void>(`/api/injuries/${id}`, {
     method: 'DELETE',
   })
-
-  // 204 / 404 считаем нормальными вариантами
-  if (!res.ok && res.status !== 204 && res.status !== 404) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Ошибка удаления (${res.status}): ${text}`)
-  }
 }
 
 /**
@@ -144,16 +116,8 @@ export async function updateInjuryStatus(
   id: number,
   payload: UpdateInjuryStatusPayload
 ): Promise<Injury> {
-  const res = await fetch(`/api/injuries/${id}/status`, {
+  return api<Injury>(`/api/injuries/${id}/status`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`Ошибка изменения статуса (${res.status}): ${text}`)
-  }
-
-  return (await res.json()) as Injury
 }

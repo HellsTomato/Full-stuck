@@ -5,6 +5,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import { getRationSummary, saveRationForDay } from '@/services/ration'
+import { useAuth } from '@/context/auth'
 
 dayjs.locale('ru')
 
@@ -34,6 +35,8 @@ type EditFormState = {
 }
 
 const AthleteRationPage = () => {
+  const { role } = useAuth()
+  const isTrainer = role === 'TRAINER'
   const { athleteId } = useParams()
   const [searchParams] = useSearchParams()
 
@@ -121,6 +124,7 @@ const AthleteRationPage = () => {
 
   // ——— Открыть модалку редактирования ———
   const openEdit = (dateKey: string) => {
+    if (!isTrainer) return
     const rec = dailyData[dateKey]
 
     setEditForm({
@@ -244,9 +248,10 @@ const AthleteRationPage = () => {
                 <button
                   type="button"
                   onClick={() => openEdit(day.key)}
+                  disabled={!isTrainer}
                   className="ml-4 rounded-xl border border-indigo-500/60 bg-indigo-600/80 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-500 transition-colors"
                 >
-                  {rec ? 'Редактировать' : 'Добавить'}
+                  {isTrainer ? (rec ? 'Редактировать' : 'Добавить') : 'Только просмотр'}
                 </button>
               </div>
             </div>
@@ -255,7 +260,7 @@ const AthleteRationPage = () => {
       </div>
 
       {/* ——— Модалка редактирования ——— */}
-      {editingDate && (
+      {isTrainer && editingDate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-700 p-6">
             <div className="mb-4">

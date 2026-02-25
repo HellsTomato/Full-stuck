@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Injury, InjuryStatus } from '@/styles/types'
+import { useAuth } from '@/context/auth'
 import {
   deleteInjury,
   fetchInjury,
@@ -45,6 +46,8 @@ function statusBadgeClasses(status: InjuryStatus): string {
 }
 
 export default function InjuriesDetailPage() {
+  const { role } = useAuth()
+  const isTrainer = role === 'TRAINER'
   const params = useParams()
   // поддерживаем и /injuries/:injuryId, и /injuries/:id
   const idParam = params.injuryId ?? params.id ?? null
@@ -192,25 +195,31 @@ export default function InjuriesDetailPage() {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleteMutation.isPending}
-            className="rounded-lg border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 shadow-sm transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {deleteMutation.isPending ? 'Удаление...' : 'Удалить травму'}
-          </button>
+          {isTrainer ? (
+            <>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+                className="rounded-lg border border-red-500/70 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 shadow-sm transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {deleteMutation.isPending ? 'Удаление...' : 'Удалить травму'}
+              </button>
 
-          <button
-            type="button"
-            onClick={handleOpenStatusDialog}
-            disabled={statusMutation.isPending}
-            className="rounded-lg border border-violet-500/80 bg-violet-500/20 px-4 py-2 text-sm font-semibold text-violet-100 shadow-sm transition hover:bg-violet-500/30 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {injury.status === 'ACTIVE'
-              ? 'Закрыть травму'
-              : 'Сделать активной снова'}
-          </button>
+              <button
+                type="button"
+                onClick={handleOpenStatusDialog}
+                disabled={statusMutation.isPending}
+                className="rounded-lg border border-violet-500/80 bg-violet-500/20 px-4 py-2 text-sm font-semibold text-violet-100 shadow-sm transition hover:bg-violet-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {injury.status === 'ACTIVE'
+                  ? 'Закрыть травму'
+                  : 'Сделать активной снова'}
+              </button>
+            </>
+          ) : (
+            <span className="text-xs text-slate-400">Доступен только просмотр</span>
+          )}
         </div>
       </div>
 
@@ -285,7 +294,7 @@ export default function InjuriesDetailPage() {
       </section>
 
       {/* мини-диалог выбора даты закрытия */}
-      {isStatusDialogOpen && (
+      {isTrainer && isStatusDialogOpen && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60">
           <div className="w-full max-w-sm rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-xl">
             <h2 className="mb-2 text-base font-semibold text-slate-50">

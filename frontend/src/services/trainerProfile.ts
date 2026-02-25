@@ -1,5 +1,6 @@
 // src/services/trainerProfile.ts
 // Сервис работы с профилем тренера: загрузка, сохранение и загрузка фото
+import { api } from './client'
 
 export type TrainerProfile = {
   username: string
@@ -15,34 +16,19 @@ const BASE_URL = '/api'
 
 // Получить профиль тренера по username
 export async function getTrainerProfile(username: string): Promise<TrainerProfile> {
-  const response = await fetch(
+  return api<TrainerProfile>(
     `${BASE_URL}/trainers/profile?username=${encodeURIComponent(username)}`
   )
-
-  if (!response.ok) {
-    throw new Error('Не удалось загрузить профиль тренера')
-  }
-
-  return (await response.json()) as TrainerProfile
 }
 
 // Обновить текстовые данные профиля (без фото)
 export async function updateTrainerProfile(
   profile: TrainerProfile
 ): Promise<TrainerProfile> {
-  const response = await fetch(`${BASE_URL}/trainers/profile`, {
+  return api<TrainerProfile>(`${BASE_URL}/trainers/profile`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(profile),
   })
-
-  if (!response.ok) {
-    throw new Error('Не удалось сохранить профиль тренера')
-  }
-
-  return (await response.json()) as TrainerProfile
 }
 
 // Загрузить фото профиля тренера (файл с диска)

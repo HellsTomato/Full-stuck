@@ -23,6 +23,15 @@ public class Athlete {
 
     private String phone;
 
+    @Column(unique = true)
+    private String username;
+
+    @Column(name = "password_hash")
+    private String passwordHash;
+
+    @Column
+    private String photoUrl;
+
     @Column(columnDefinition = "text")
     private String notes;
 
@@ -43,6 +52,15 @@ public class Athlete {
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
+    public String getPhotoUrl() { return photoUrl; }
+    public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }

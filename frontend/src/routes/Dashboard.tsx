@@ -4,9 +4,9 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchWeekPlan } from "@/services/weeklyPlan";
 import { getAttendance } from "@/services/attendance";
-import { getAthletes } from "@/services/athletes";
 import { useNavigate } from "react-router-dom";
 import type { Attendance } from "@/types";
+import { useAuth } from "@/context/auth";
 
 // ===== ДАТЫ =====
 
@@ -50,6 +50,8 @@ function normalizeDateStr(value: string | undefined | null): string | null {
 }
 
 export default function Dashboard() {
+  const { role } = useAuth();
+  const isTrainer = role === "TRAINER";
   const nav = useNavigate();
 
   const today = isoToday();      // сегодня
@@ -60,19 +62,6 @@ export default function Dashboard() {
     (typeof window !== "undefined" &&
       window.localStorage.getItem(GROUP_KEY)) ||
     "ALL";
-
-  // ===== СПОРТСМЕНЫ (чтобы собрать группы, если надо где-то ещё использовать) =====
-  const { data: athletes } = useQuery({
-    queryKey: ["athletes"],
-    queryFn: () => getAthletes({}),
-  });
-
-  // Уникальные группы из списка спортсменов
-  const groups = useMemo(() => {
-    const set = new Set<string>();
-    (athletes?.items || []).forEach((a: any) => set.add(a.group));
-    return Array.from(set);
-  }, [athletes]);
 
   // ===== НЕДЕЛЬНЫЙ ПЛАН =====
   const { data: trainings = [] } = useQuery({
@@ -257,15 +246,19 @@ export default function Dashboard() {
           Быстрые действия
         </div>
         <div className="p-3 flex flex-wrap gap-2">
-          <button onClick={() => nav("/attendance")} className="btn-outline">
-            Отметить посещаемость
-          </button>
-          <button onClick={() => nav("/injuries")} className="btn-outline">
-            Добавить травму
-          </button>
-          <button onClick={() => nav("/reports")} className="btn-outline">
-            Сформировать отчёт
-          </button>
+          {isTrainer && (
+            <>
+              <button onClick={() => nav("/attendance")} className="btn-outline">
+                Отметить посещаемость
+              </button>
+              <button onClick={() => nav("/injuries")} className="btn-outline">
+                Добавить травму
+              </button>
+              <button onClick={() => nav("/reports")} className="btn-outline">
+                Сформировать отчёт
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ export type Athlete = {
   birthDate: string;
   group: string;
   phone?: string;
+  photoUrl?: string;
   notes?: string;
   status?: "active" | "archived";
 };
@@ -23,7 +24,7 @@ export type Attendance = {
   id: string;
   athleteId: string;
   sessionId: string;
-  status: "Присутствовал" | "Опоздал" | "Отсутствовал";
+  status: "PRESENT" | "LATE" | "ABSENT";
   comment?: string;
 };
 

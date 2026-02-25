@@ -15,7 +15,7 @@ export default function AuthRegister(){
       const res = await fetch('/api/auth/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ fullName, email, password }) })
       if (!res.ok) throw new Error('fail')
       const data = await res.json()
-      login(data.user, data.token)
+      login(data.token, data.user ?? email, data.role ?? 'TRAINER', data.userId ?? 'legacy')
       location.href = '/dashboard'
     }catch{
       setError('Ошибка регистрации')

@@ -6,6 +6,7 @@ import { getAthletes } from '@/services/athletes'
 import { getWeeklyRation } from '@/services/ration'
 import { getInjuries } from '@/services/injuries'
 import { getAttendance } from '@/services/attendance'
+import { formatTrainingGroup } from '@/utils/groupLabels'
 
 export default function AthleteProfile() {
   // id берём из роут-параметров (/athletes/:id)
@@ -72,7 +73,7 @@ export default function AthleteProfile() {
             Год рождения: {athlete.birthDate?.slice(0, 4) || '—'}
           </div>
         </div>
-        <div className="text-sm text-gray-600">Группа: {athlete.group}</div>
+        <div className="text-sm text-gray-600">Группа: {formatTrainingGroup(athlete.group)}</div>
       </div>
 
       {/* Карточка с табами */}

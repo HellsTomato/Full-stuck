@@ -2,8 +2,12 @@ import React from "react";
 import { Navigate, Outlet } from "react-router-dom"; // Outlet — "вложенные" маршруты внутри защищённого роутa
 import { useAuth } from "../context/auth";           // useAuth — наш контекст авторизации
 
-const PrivateRoute: React.FC = () => {
-  const { token, loaded } = useAuth();              // берём token и loaded из контекста
+type PrivateRouteProps = {
+  allowedRoles?: Array<"TRAINER" | "ATHLETE">;
+};
+
+const PrivateRoute: React.FC<PrivateRouteProps> = ({ allowedRoles }) => {
+  const { token, loaded, role } = useAuth();              // берём token и loaded из контекста
 
   // 1. Пока авторизация ещё загружается из localStorage — ничего не делаем
   //    Важно: мы НЕ редиректим на /login и НЕ рендерим контент,
@@ -16,6 +20,10 @@ const PrivateRoute: React.FC = () => {
   //    Если токена нет — пользователь не авторизован → отправляем на /login.
   if (!token) {
     return <Navigate to="/login" replace />;        // replace — чтобы не засорять историю
+  }
+
+  if (allowedRoles?.length && role && !allowedRoles.includes(role)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   // 3. Если токен есть — рендерим вложенные роуты (Dashboard, Athletes, WeeklyPlan и т.п.)
