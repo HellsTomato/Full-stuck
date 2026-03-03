@@ -3,9 +3,10 @@
 import React, { useState } from "react";         // useState — состояние полей формы
 import { useNavigate, Link } from "react-router-dom"; // useNavigate/Link — навигация
 import { useAuth } from "@/context/auth";   // путь через alias "@"
-import { loginTrainer } from "../services/auth";      // loginTrainer — запрос на бэкенд
+import { loginAthlete, loginTrainer } from "../services/auth";      // loginTrainer — запрос на бэкенд
 
 const LoginPage: React.FC = () => {              // LoginPage — компонент страницы входа
+  const [role, setRole] = useState<"TRAINER" | "ATHLETE">("TRAINER");
   const [username, setUsername] = useState("");  // username — поле логина
   const [password, setPassword] = useState("");  // password — поле пароля
   const [error, setError] = useState<string | null>(null); // error — текст ошибки
@@ -20,8 +21,11 @@ const LoginPage: React.FC = () => {              // LoginPage — компоне
     setLoading(true);                           // включаем индикатор загрузки
 
     try {
-      const token = await loginTrainer(username, password); // вызываем API логина → получаем токен
-      auth.login(token, username);              // сохраняем токен и логин в контекст/localStorage
+      const payload = role === "TRAINER"
+        ? await loginTrainer(username, password)
+        : await loginAthlete(username, password);
+
+      auth.login(payload.token, payload.username, payload.role, payload.userId);
       navigate("/dashboard");                   // после успешного входа → на главную тренера
     } catch (err: any) {                        // перехват ошибки
       setError(err.message || "Ошибка при входе"); // показываем сообщение пользователю
@@ -36,8 +40,25 @@ const LoginPage: React.FC = () => {              // LoginPage — компоне
       <div className="w-full max-w-md bg-slate-800 rounded-2xl p-8 shadow-lg">
         {/* карточка формы */}
         <h1 className="text-2xl font-semibold text-white mb-6 text-center">
-          Вход для тренера
+          Вход
         </h1>
+
+        <div className="mb-4 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            className={`rounded-lg py-2 text-sm ${role === "TRAINER" ? "bg-indigo-500 text-white" : "bg-slate-700 text-slate-200"}`}
+            onClick={() => setRole("TRAINER")}
+          >
+            Я тренер
+          </button>
+          <button
+            type="button"
+            className={`rounded-lg py-2 text-sm ${role === "ATHLETE" ? "bg-indigo-500 text-white" : "bg-slate-700 text-slate-200"}`}
+            onClick={() => setRole("ATHLETE")}
+          >
+            Я атлет
+          </button>
+        </div>
 
         {error && (                               // если есть ошибка — показываем блок
           <div className="mb-4 text-sm text-red-400">
@@ -88,7 +109,7 @@ const LoginPage: React.FC = () => {              // LoginPage — компоне
             to="/register"
             className="text-indigo-400 hover:text-indigo-300"
           >
-            Зарегистрироваться
+            Зарегистрироваться как {role === "TRAINER" ? "тренер" : "атлет"}
           </Link>
         </p>
       </div>

@@ -1,15 +1,23 @@
 // src/components/Sidebar.tsx
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '@/context/auth'
 
 export function Sidebar() {
+  const { role } = useAuth()
+  // Флаги роли определяют, какие пункты меню отрисовываются
+  const isTrainer = role === 'TRAINER'
+  const isAthlete = role === 'ATHLETE'
+
+  // trainer-only пункты скрываем на уровне UI для роли ATHLETE
   const links = [
     { path: '/dashboard', label: 'Дашборд' },
-    { path: '/athletes', label: 'Спортсмены' },
-    { path: '/weekly-plan', label: 'План недели' },
-    { path: '/attendance', label: 'Посещения' },
-    { path: '/injuries', label: 'Состояние здоровья' },
-    { path: '/ration', label: 'Рацион' },
-    { path: '/reports', label: 'Аналитика' },
+    ...(isTrainer ? [{ path: '/athletes', label: 'Спортсмены' }] : []),
+    ...(isTrainer ? [{ path: '/weekly-plan', label: 'План недели' }] : []),
+    ...(isTrainer ? [{ path: '/attendance', label: 'Посещения' }] : []),
+    ...(isTrainer ? [{ path: '/injuries', label: 'Состояние здоровья' }] : []),
+    ...(isTrainer ? [{ path: '/ration', label: 'Рацион' }] : []),
+    ...(isTrainer ? [{ path: '/reports', label: 'Аналитика' }] : []),
+    ...(isAthlete ? [{ path: '/athlete-profile', label: 'Мой профиль' }] : []),
   ]
 
   return (

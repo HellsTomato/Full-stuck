@@ -3,6 +3,7 @@ import { Navigate, Outlet } from "react-router-dom"; // Outlet — "вложен
 import { useAuth } from "../context/auth";           // useAuth — наш контекст авторизации
 
 type PrivateRouteProps = {
+  // allowedRoles задаём только для role-only страниц
   allowedRoles?: Array<"TRAINER" | "ATHLETE">;
 };
 
@@ -22,6 +23,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ allowedRoles }) => {
     return <Navigate to="/login" replace />;        // replace — чтобы не засорять историю
   }
 
+  // Если роль не входит в белый список — блокируем доступ к роуту
   if (allowedRoles?.length && role && !allowedRoles.includes(role)) {
     return <Navigate to="/dashboard" replace />;
   }

@@ -3,16 +3,21 @@ package ru.mtuci.sportapp.backend.controller;          // пакет с REST-к�
 import lombok.RequiredArgsConstructor;                   // RequiredArgsConstructor — автоген. конструктора
 import org.springframework.http.HttpStatus;              // HttpStatus — коды ответа (200, 401, 409...)
 import org.springframework.http.ResponseEntity;          // ResponseEntity — обёртка ответа
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;        // @RestController, @PostMapping, @CrossOrigin...
+import ru.mtuci.sportapp.backend.entity.Athlete;
 import ru.mtuci.sportapp.backend.entity.Trainer;         // Trainer — сущность тренера
+import ru.mtuci.sportapp.backend.entity.UserSession;
 import ru.mtuci.sportapp.backend.model.LoginRequest;     // LoginRequest — тело запроса логина
 import ru.mtuci.sportapp.backend.model.LoginResponse;    // LoginResponse — ответ с токеном
+import ru.mtuci.sportapp.backend.model.RegisterAthleteRequest;
 import ru.mtuci.sportapp.backend.model.RegisterTrainerRequest; // RegisterTrainerRequest — регистрация
+import ru.mtuci.sportapp.backend.repo.AthleteRepo;
 import ru.mtuci.sportapp.backend.repo.TrainerRepo;       // TrainerRepo — работа с БД
+import ru.mtuci.sportapp.backend.repo.UserSessionRepo;
+import ru.mtuci.sportapp.backend.security.UserRole;
 
-import java.nio.charset.StandardCharsets;                // StandardCharsets — кодировка UTF-8
-import java.security.MessageDigest;                      // MessageDigest — хэширование SHA-256
-import java.security.NoSuchAlgorithmException;           // исключение, если алгоритм не найден
+import java.time.Instant;
 import java.util.UUID;                                   // UUID — id и фейковый токен
 import java.util.Optional;                               // Optional — результат поиска
 
@@ -23,15 +28,19 @@ import java.util.Optional;                               // Optional — рез�
 public class AuthController {
 
     private final TrainerRepo trainerRepo;               // trainerRepo — доступ к таблице trainers
+    private final AthleteRepo athleteRepo;
+    private final UserSessionRepo userSessionRepo;
+    private final PasswordEncoder passwordEncoder;
 
-    @PostMapping("/register")                            // POST /api/register — регистрация тренера
-    public ResponseEntity<LoginResponse> register(
+    @PostMapping("/register/trainer")
+    public ResponseEntity<LoginResponse> registerTrainer(
             @RequestBody RegisterTrainerRequest request  // request — JSON с username/password/fullName
     ) {
-        // проверяем, что такого логина ещё нет
-        Optional<Trainer> existing = trainerRepo.findByUsername(request.getUsername()); // поиск по логину
+        // Логин должен быть уникален среди обеих ролей
+        Optional<Trainer> existingTrainer = trainerRepo.findByUsername(request.getUsername());
+        Optional<Athlete> existingAthlete = athleteRepo.findByUsername(request.getUsername());
 
-        if (existing.isPresent()) {                      // if — если тренер уже существует
+        if (existingTrainer.isPresent() || existingAthlete.isPresent()) {
             return ResponseEntity
                     .status(HttpStatus.CONFLICT)         // 409 CONFLICT — логин занят
                     .build();                            // возвращаем пустой ответ
@@ -41,23 +50,50 @@ public class AuthController {
         trainer.setId(UUID.randomUUID());                // id — генерируем UUID вручную
         trainer.setUsername(request.getUsername());      // username — из запроса
         trainer.setFullName(request.getFullName());      // fullName — из запроса
-        trainer.setPasswordHash(hashPassword(request.getPassword())); // passwordHash — хэш пароля
+        trainer.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        trainer.setRole(UserRole.TRAINER);
 
         trainerRepo.save(trainer);                       // сохраняем тренера в БД
 
-        String fakeToken = UUID.randomUUID().toString(); // фейковый токен — просто UUID
-        LoginResponse response = new LoginResponse(fakeToken); // response — оборачиваем токен
+        LoginResponse response = createSession(trainer.getId(), trainer.getUsername(), UserRole.TRAINER);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)              // 201 CREATED — успешно создан
                 .body(response);                         // тело — JSON с токеном
     }
 
-    @PostMapping("/login")                               // POST /api/login — вход тренера
-    public ResponseEntity<LoginResponse> login(
+    @PostMapping("/register/athlete")
+    public ResponseEntity<LoginResponse> registerAthlete(
+            @RequestBody RegisterAthleteRequest request
+    ) {
+        // Логин должен быть уникален среди обеих ролей
+        Optional<Trainer> existingTrainer = trainerRepo.findByUsername(request.getUsername());
+        Optional<Athlete> existingAthlete = athleteRepo.findByUsername(request.getUsername());
+
+        if (existingTrainer.isPresent() || existingAthlete.isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+
+        Athlete athlete = new Athlete();
+        athlete.setId(UUID.randomUUID());
+        athlete.setUsername(request.getUsername());
+        athlete.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        athlete.setFullName(request.getFullName());
+        athlete.setBirthDate(request.getBirthDate());
+        athlete.setGrp(request.getGroup());
+        athlete.setPhone(request.getPhone());
+        athlete.setNotes(request.getNotes());
+
+        athleteRepo.save(athlete);
+
+        LoginResponse response = createSession(athlete.getId(), athlete.getUsername(), UserRole.ATHLETE);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/login/trainer")
+    public ResponseEntity<LoginResponse> loginTrainer(
             @RequestBody LoginRequest request            // request — JSON с username/password
     ) {
-        // ищем тренера по логину
         Optional<Trainer> trainerOpt =
                 trainerRepo.findByUsername(request.getUsername()); // запрос в БД
 
@@ -68,35 +104,46 @@ public class AuthController {
         }
 
         Trainer trainer = trainerOpt.get();              // trainer — найденный тренер
-        String incomingHash = hashPassword(request.getPassword()); // хэш пароля из запроса
-
-        if (!incomingHash.equals(trainer.getPasswordHash())) { // если хэши не совпали
+        if (!passwordEncoder.matches(request.getPassword(), trainer.getPasswordHash())) {
             return ResponseEntity
                     .status(HttpStatus.UNAUTHORIZED)     // 401 — также неверный логин/пароль
                     .build();
         }
 
-        String fakeToken = UUID.randomUUID().toString(); // генерируем новый фейковый токен
-        LoginResponse response = new LoginResponse(fakeToken); // упаковываем в ответ
+        LoginResponse response = createSession(trainer.getId(), trainer.getUsername(), UserRole.TRAINER);
 
         return ResponseEntity.ok(response);              // 200 OK + JSON { "token": "..." }
     }
 
-    // простое хэширование пароля через SHA-256
-    private String hashPassword(String rawPassword) {    // rawPassword — пароль в чистом виде
-        try {
-            MessageDigest digest =
-                    MessageDigest.getInstance("SHA-256"); // SHA-256 — алгоритм хэширования
-            byte[] hashBytes =
-                    digest.digest(rawPassword.getBytes(StandardCharsets.UTF_8)); // хэшируем байты
+    @PostMapping("/login/athlete")
+    public ResponseEntity<LoginResponse> loginAthlete(
+            @RequestBody LoginRequest request
+    ) {
+        Optional<Athlete> athleteOpt = athleteRepo.findByUsername(request.getUsername());
 
-            StringBuilder sb = new StringBuilder();      // sb — строковый билдер для hex-представления
-            for (byte b : hashBytes) {                   // проходим по каждому байту
-                sb.append(String.format("%02x", b));     // %02x — 2 шестнадцатеричных символа
-            }
-            return sb.toString();                        // возвращаем строку-хэш
-        } catch (NoSuchAlgorithmException e) {           // если SHA-256 недоступен (маловероятно)
-            throw new RuntimeException(e);               // пробрасываем как unchecked-ошибку
+        if (athleteOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+
+        Athlete athlete = athleteOpt.get();
+        if (athlete.getPasswordHash() == null || !passwordEncoder.matches(request.getPassword(), athlete.getPasswordHash())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        LoginResponse response = createSession(athlete.getId(), athlete.getUsername(), UserRole.ATHLETE);
+        return ResponseEntity.ok(response);
+    }
+
+    private LoginResponse createSession(UUID userId, String username, UserRole role) {
+        // Токен — ключ сессии в user_sessions; по нему потом поднимаем SecurityContext
+        String token = UUID.randomUUID().toString();
+        UserSession session = new UserSession();
+        session.setToken(token);
+        session.setUserId(userId);
+        session.setUsername(username);
+        session.setRole(role);
+        session.setCreatedAt(Instant.now());
+        userSessionRepo.save(session);
+        return new LoginResponse(token, username, role, userId);
     }
 }

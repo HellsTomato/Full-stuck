@@ -16,6 +16,7 @@ import { ToastProvider } from '@/components/Toast'
 
 // ленивые страницы
 const TrainerProfile = React.lazy(() => import('./routes/TrainerProfile'))
+const AthleteSelfProfile = React.lazy(() => import('./routes/AthleteSelfProfile'))
 const Dashboard = React.lazy(() => import('./routes/Dashboard'))
 const Athletes = React.lazy(() => import('./routes/Athletes'))
 const AthleteProfile = React.lazy(() => import('./routes/AthleteProfile'))
@@ -55,6 +56,7 @@ const router = createBrowserRouter([
   },
   {
     path: '/',
+    // Базовая защита: все дочерние экраны доступны только после логина
     element: <PrivateRoute />,
     errorElement: <ErrorPage />,
     children: [
@@ -76,83 +78,159 @@ const router = createBrowserRouter([
           },
           {
             path: 'athletes',
-            element: (
-              <React.Suspense fallback={<div>Загрузка…</div>}>
-                <Athletes />
-              </React.Suspense>
-            ),
+            // trainer-only разделы проверяются через allowedRoles
+            element: <PrivateRoute allowedRoles={["TRAINER"]} />,
+            children: [
+              {
+                index: true,
+                element: (
+                  <React.Suspense fallback={<div>Загрузка…</div>}>
+                    <Athletes />
+                  </React.Suspense>
+                ),
+              },
+            ],
           },
           {
             path: 'athletes/:id',
-            element: (
-              <React.Suspense fallback={<div>Загрузка…</div>}>
-                <AthleteProfile />
-              </React.Suspense>
-            ),
+            element: <PrivateRoute allowedRoles={["TRAINER"]} />,
+            children: [
+              {
+                index: true,
+                element: (
+                  <React.Suspense fallback={<div>Загрузка…</div>}>
+                    <AthleteProfile />
+                  </React.Suspense>
+                ),
+              },
+            ],
           },
           {
             path: 'weekly-plan',
-            element: (
-              <React.Suspense fallback={<div>Загрузка…</div>}>
-                <WeeklyPlan />
-              </React.Suspense>
-            ),
+            element: <PrivateRoute allowedRoles={["TRAINER"]} />,
+            children: [
+              {
+                index: true,
+                element: (
+                  <React.Suspense fallback={<div>Загрузка…</div>}>
+                    <WeeklyPlan />
+                  </React.Suspense>
+                ),
+              },
+            ],
           },
           {
             path: 'attendance',
-            element: (
-              <React.Suspense fallback={<div>Загрузка…</div>}>
-                <Attendance />
-              </React.Suspense>
-            ),
+            element: <PrivateRoute allowedRoles={["TRAINER"]} />,
+            children: [
+              {
+                index: true,
+                element: (
+                  <React.Suspense fallback={<div>Загрузка…</div>}>
+                    <Attendance />
+                  </React.Suspense>
+                ),
+              },
+            ],
           },
           {
             path: 'injuries',
-            element: (
-              <React.Suspense fallback={<div>Загрузка…</div>}>
-                <Injuries />
-              </React.Suspense>
-            ),
+            element: <PrivateRoute allowedRoles={["TRAINER"]} />,
+            children: [
+              {
+                index: true,
+                element: (
+                  <React.Suspense fallback={<div>Загрузка…</div>}>
+                    <Injuries />
+                  </React.Suspense>
+                ),
+              },
+            ],
           },
           {
             path: 'injuries/:id',
-            element: (
-              <React.Suspense fallback={<div>Загрузка…</div>}>
-                <InjuriesDetail />
-              </React.Suspense>
-            ),
+            element: <PrivateRoute allowedRoles={["TRAINER"]} />,
+            children: [
+              {
+                index: true,
+                element: (
+                  <React.Suspense fallback={<div>Загрузка…</div>}>
+                    <InjuriesDetail />
+                  </React.Suspense>
+                ),
+              },
+            ],
           },
           {
             path: 'ration',
-            element: (
-              <React.Suspense fallback={<div>Загрузка…</div>}>
-                <RationPage />
-              </React.Suspense>
-            ),
+            element: <PrivateRoute allowedRoles={["TRAINER"]} />,
+            children: [
+              {
+                index: true,
+                element: (
+                  <React.Suspense fallback={<div>Загрузка…</div>}>
+                    <RationPage />
+                  </React.Suspense>
+                ),
+              },
+            ],
           },
           {
             path: 'ration/athlete/:athleteId',
-                        element: (
-                          <React.Suspense fallback={<div>Загрузка…</div>}>
-                            <AthleteRationPage />
-                          </React.Suspense>
-                        ),
-                      },
+            element: <PrivateRoute allowedRoles={["TRAINER"]} />,
+            children: [
+              {
+                index: true,
+                element: (
+                  <React.Suspense fallback={<div>Загрузка…</div>}>
+                    <AthleteRationPage />
+                  </React.Suspense>
+                ),
+              },
+            ],
+          },
           {
             path: 'reports',
-            element: (
-              <React.Suspense fallback={<div>Загрузка…</div>}>
-                <Reports />
-              </React.Suspense>
-            ),
+            element: <PrivateRoute allowedRoles={["TRAINER"]} />,
+            children: [
+              {
+                index: true,
+                element: (
+                  <React.Suspense fallback={<div>Загрузка…</div>}>
+                    <Reports />
+                  </React.Suspense>
+                ),
+              },
+            ],
+          },
+          {
+            path: 'athlete-profile',
+            // self-профиль доступен только роли ATHLETE
+            element: <PrivateRoute allowedRoles={["ATHLETE"]} />,
+            children: [
+              {
+                index: true,
+                element: (
+                  <React.Suspense fallback={<div>Загрузка…</div>}>
+                    <AthleteSelfProfile />
+                  </React.Suspense>
+                ),
+              },
+            ],
           },
           {
             path: 'trainer-profile',
-            element: (
-              <React.Suspense fallback={<div>Загрузка…</div>}>
-                <TrainerProfile />
-              </React.Suspense>
-            ),
+            element: <PrivateRoute allowedRoles={["TRAINER"]} />,
+            children: [
+              {
+                index: true,
+                element: (
+                  <React.Suspense fallback={<div>Загрузка…</div>}>
+                    <TrainerProfile />
+                  </React.Suspense>
+                ),
+              },
+            ],
           },
           {
             path: '*',
