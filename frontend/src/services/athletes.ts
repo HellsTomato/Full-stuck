@@ -1,6 +1,6 @@
 // src/services/athletes.ts
 import type { Athlete } from "@/types"
-import { api } from "./client"
+import { api, apiFetch } from "./client"
 
 const base = "" // при Vite proxy оставляем пустым
 
@@ -81,11 +81,8 @@ export async function uploadMyAthletePhoto(file: File) {
   const formData = new FormData()
   formData.append("file", file)
 
-  const token = localStorage.getItem("auth_token")
-
-  const response = await fetch(`${base}/api/athletes/me/photo`, {
+  const response = await apiFetch(`${base}/api/athletes/me/photo`, {
     method: "POST",
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: formData,
   })
 

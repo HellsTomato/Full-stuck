@@ -6,41 +6,132 @@ type ErrorShape = {
 
 // Ключи в localStorage — те же, что и в auth.tsx
 const TOKEN_KEY = "auth_token";
+const REFRESH_TOKEN_KEY = "auth_refresh_token";
 const USERNAME_KEY = "auth_username";
 const ROLE_KEY = "auth_role";
 const USER_ID_KEY = "auth_user_id";
 
-// Универсальная функция для запросов к API
-export async function api<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
-  // 1. Достаём токен из localStorage
-  const token = localStorage.getItem(TOKEN_KEY); // token — сохранённый JWT или null
+type AuthResponseShape = {
+  token?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  username?: string;
+  role?: "TRAINER" | "ATHLETE";
+  userId?: string;
+};
 
-  // 2. Собираем заголовки запроса
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",          // всегда JSON по умолчанию
-    ...(init?.headers || {}),                   // поверх — любые кастомные заголовки,
-  };                                            // которые передали из сервиса
+type FetchOptions = {
+  skipAuth?: boolean;
+  // retryOn401 включает единоразовый повтор запроса после refresh access token
+  retryOn401?: boolean;
+};
 
-  // 3. Если токен есть — добавляем Authorization
-  if (token) {
-    // Важно: если в init.headers уже передан Authorization —
-    // наш токен его перезапишет (это нормально)
-    (headers as any).Authorization = `Bearer ${token}`; // стандартный формат JWT
+function clearAuthStorage() {
+  // Полная очистка auth-состояния при невалидной/истёкшей сессии
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(USERNAME_KEY);
+  localStorage.removeItem(ROLE_KEY);
+  localStorage.removeItem(USER_ID_KEY);
+}
+
+function saveAuthFromResponse(payload: AuthResponseShape) {
+  const newAccessToken = payload.accessToken ?? payload.token;
+  const newRefreshToken = payload.refreshToken;
+  if (newAccessToken) {
+    localStorage.setItem(TOKEN_KEY, newAccessToken);
+  }
+  if (newRefreshToken) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
+  }
+  if (payload.username) {
+    localStorage.setItem(USERNAME_KEY, payload.username);
+  }
+  if (payload.role) {
+    localStorage.setItem(ROLE_KEY, payload.role);
+  }
+  if (payload.userId) {
+    localStorage.setItem(USER_ID_KEY, payload.userId);
+  }
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!refreshToken) {
+    return null;
   }
 
-  // 4. Делаем реальный запрос
-  const res = await fetch(input, {
-    ...init,      // остальные опции (method, body и т.п.)
-    headers,      // наши заголовки с токеном
+  // Запрос нового access token по refresh token
+  const response = await fetch("/api/auth/refresh", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refreshToken }),
   });
 
-  // 5. Обработка 401 — неавторизован
+  if (!response.ok) {
+    return null;
+  }
+
+  const data = (await response.json()) as AuthResponseShape;
+  saveAuthFromResponse(data);
+  return data.accessToken ?? data.token ?? null;
+}
+
+export async function apiFetch(input: RequestInfo, init?: RequestInit, options: FetchOptions = {}): Promise<Response> {
+  const { skipAuth = false, retryOn401 = true } = options;
+
+  const headers = new Headers(init?.headers ?? undefined);
+  if (!skipAuth) {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+  }
+
+  const firstResponse = await fetch(input, {
+    ...init,
+    headers,
+  });
+
+  if (firstResponse.status !== 401 || skipAuth || !retryOn401) {
+    return firstResponse;
+  }
+
+  // 401 => пробуем silent refresh и повторяем исходный запрос
+  const newAccessToken = await refreshAccessToken();
+  if (!newAccessToken) {
+    clearAuthStorage();
+    if (window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
+    return firstResponse;
+  }
+
+  const retryHeaders = new Headers(init?.headers ?? undefined);
+  retryHeaders.set("Authorization", `Bearer ${newAccessToken}`);
+
+  return fetch(input, {
+    ...init,
+    headers: retryHeaders,
+  });
+}
+
+// Универсальная функция для запросов к API
+export async function api<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
+  const headers = new Headers(init?.headers ?? undefined);
+  if (!isFormData && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const res = await apiFetch(input, {
+    ...init,
+    headers,
+  });
+
+  // 401 после retry = сессия реально недействительна
   if (res.status === 401) {
-    // Если бэкенд сказал "не авторизован" — чистим хранилище
-    localStorage.removeItem(TOKEN_KEY);       // убираем токен
-    localStorage.removeItem(USERNAME_KEY);    // убираем логин
-    localStorage.removeItem(ROLE_KEY);
-    localStorage.removeItem(USER_ID_KEY);
+    clearAuthStorage();
 
     // Можно сразу отправить пользователя на страницу логина
     // (если зайдёт — оставь, если нет — закомментируй)

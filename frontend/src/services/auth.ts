@@ -5,9 +5,17 @@ export type AuthRole = "TRAINER" | "ATHLETE";
 
 export type AuthResponse = {
   token: string;
+  accessToken: string;
+  refreshToken: string;
   username: string;
   role: AuthRole;
   userId: string;
+};
+
+export type CurrentUserResponse = {
+  userId: string;
+  username: string;
+  role: AuthRole;
 };
 
 export type RegisterAthletePayload = {
@@ -19,6 +27,23 @@ export type RegisterAthletePayload = {
   phone?: string;
   notes?: string;
 };
+
+function normalizeAuthResponse(raw: any): AuthResponse {
+  // Поддерживаем и новый формат (accessToken), и legacy поле token.
+  const accessToken = raw?.accessToken ?? raw?.token;
+  if (!accessToken || !raw?.refreshToken) {
+    throw new Error("Некорректный ответ сервера аутентификации");
+  }
+
+  return {
+    token: accessToken,
+    accessToken,
+    refreshToken: raw.refreshToken,
+    username: raw.username,
+    role: raw.role,
+    userId: raw.userId,
+  };
+}
 
 // Вход (логин)
 export async function loginTrainer(username: string, password: string): Promise<AuthResponse> {
@@ -35,7 +60,7 @@ export async function loginTrainer(username: string, password: string): Promise<
     throw new Error("Ошибка при входе");
   }
 
-  return (await response.json()) as AuthResponse;
+  return normalizeAuthResponse(await response.json());
 }
 
 export async function loginAthlete(username: string, password: string): Promise<AuthResponse> {
@@ -52,7 +77,7 @@ export async function loginAthlete(username: string, password: string): Promise<
     throw new Error("Ошибка при входе");
   }
 
-  return (await response.json()) as AuthResponse;
+  return normalizeAuthResponse(await response.json());
 }
 
 // Регистрация тренера
@@ -74,7 +99,7 @@ export async function registerTrainer(
     throw new Error("Ошибка при регистрации");
   }
 
-  return (await response.json()) as AuthResponse;
+  return normalizeAuthResponse(await response.json());
 }
 
 export async function registerAthlete(payload: RegisterAthletePayload): Promise<AuthResponse> {
@@ -91,5 +116,44 @@ export async function registerAthlete(payload: RegisterAthletePayload): Promise<
     throw new Error("Ошибка при регистрации");
   }
 
-  return (await response.json()) as AuthResponse;
+  return normalizeAuthResponse(await response.json());
+}
+
+export async function refreshSession(refreshToken: string): Promise<AuthResponse> {
+  // Явный refresh endpoint (помимо автоматического в api client)
+  const response = await fetch(`${BASE_URL}/auth/refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refreshToken }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Сессия истекла. Войдите снова.");
+  }
+
+  return normalizeAuthResponse(await response.json());
+}
+
+export async function logoutSession(refreshToken: string | null): Promise<void> {
+  // Logout сообщает серверу, какой refresh нужно отозвать.
+  await fetch(`${BASE_URL}/auth/logout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refreshToken }),
+  });
+}
+
+export async function getCurrentUser(accessToken: string): Promise<CurrentUserResponse> {
+  // Технический endpoint для проверки текущей аутентификации.
+  const response = await fetch(`${BASE_URL}/auth/me`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Не удалось получить текущего пользователя");
+  }
+
+  return (await response.json()) as CurrentUserResponse;
 }

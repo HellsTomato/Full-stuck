@@ -6,11 +6,12 @@ import {
   updateMyAthlete,
   uploadMyAthletePhoto,
 } from "@/services/athletes";
+import { logoutSession } from "@/services/auth";
 import type { Athlete } from "@/types";
 import { formatTrainingGroup } from "@/utils/groupLabels";
 
 export default function AthleteSelfProfile() {
-  const { role, logout } = useAuth();
+  const { role, logout, refreshToken } = useAuth();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState<Athlete | null>(null);
@@ -42,7 +43,10 @@ export default function AthleteSelfProfile() {
     return <div className="p-4 text-[var(--color-text)]">Доступ запрещён</div>;
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // 1) отзываем refresh token на сервере
+    await logoutSession(refreshToken);
+    // 2) очищаем локальную auth-сессию
     logout();
     navigate("/login");
   };

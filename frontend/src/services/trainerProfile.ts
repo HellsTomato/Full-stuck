@@ -1,6 +1,6 @@
 // src/services/trainerProfile.ts
 // Сервис работы с профилем тренера: загрузка, сохранение и загрузка фото
-import { api } from './client'
+import { api, apiFetch } from './client'
 
 export type TrainerProfile = {
   username: string
@@ -40,7 +40,7 @@ export async function uploadTrainerPhoto(
   formData.append('username', username) // совпадает с @RequestParam("username")
   formData.append('file', file)         // совпадает с @RequestParam("file")
 
-  const response = await fetch(`${BASE_URL}/trainers/profile/photo`, {
+  const response = await apiFetch(`${BASE_URL}/trainers/profile/photo`, {
     method: 'POST',
     body: formData,                     // ВАЖНО: не задаём Content-Type вручную
   })

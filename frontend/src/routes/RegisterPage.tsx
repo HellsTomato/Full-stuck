@@ -37,7 +37,7 @@ const RegisterPage: React.FC = () => {          // RegisterPage — компон
             phone,
             notes,
           });
-      auth.login(payload.token, payload.username, payload.role, payload.userId);
+          auth.login(payload.accessToken, payload.refreshToken, payload.username, payload.role, payload.userId);
       navigate("/dashboard");                   // переносим в кабинет тренера
     } catch (err: any) {                        // перехватываем ошибку
       setError(err.message || "Ошибка при регистрации"); // показываем текст

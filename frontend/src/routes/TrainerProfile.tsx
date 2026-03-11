@@ -8,9 +8,10 @@ import {
   uploadTrainerPhoto,
   TrainerProfile,
 } from '@/services/trainerProfile'
+import { logoutSession } from '@/services/auth'
 
 const TrainerProfilePage: React.FC = () => {
-  const { username, logout, role } = useAuth()
+  const { username, logout, role, refreshToken } = useAuth()
   const navigate = useNavigate()
 
   const [profile, setProfile] = useState<TrainerProfile | null>(null)
@@ -45,7 +46,10 @@ const TrainerProfilePage: React.FC = () => {
       .finally(() => setLoading(false))
   }, [username])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // 1) отзываем refresh token на сервере
+    await logoutSession(refreshToken)
+    // 2) чистим локальное состояние авторизации
     logout()
     navigate('/login')
   }

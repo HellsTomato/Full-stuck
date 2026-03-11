@@ -25,7 +25,7 @@ const LoginPage: React.FC = () => {              // LoginPage — компоне
         ? await loginTrainer(username, password)
         : await loginAthlete(username, password);
 
-      auth.login(payload.token, payload.username, payload.role, payload.userId);
+      auth.login(payload.accessToken, payload.refreshToken, payload.username, payload.role, payload.userId);
       navigate("/dashboard");                   // после успешного входа → на главную тренера
     } catch (err: any) {                        // перехват ошибки
       setError(err.message || "Ошибка при входе"); // показываем сообщение пользователю

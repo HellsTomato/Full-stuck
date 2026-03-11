@@ -7,10 +7,15 @@ import ru.mtuci.sportapp.backend.security.UserRole;
 import java.util.UUID;
 
 @Data                                            // @Data — геттеры/сеттеры
-@AllArgsConstructor                              // @AllArgsConstructor — конструктор(token)
+@AllArgsConstructor
 public class LoginResponse {
 
-    private String token;                        // token — токен, который фронт сохранит
+    // legacy-поле для обратной совместимости (содержит accessToken)
+    private String token;
+    // Короткоживущий JWT для доступа к защищённым API.
+    private String accessToken;
+    // Долгоживущий токен для обновления access токена.
+    private String refreshToken;
     // username нужен для отображения в UI и запросов профиля
     private String username;
     // role фронт использует для role-based роутов и скрытия действий

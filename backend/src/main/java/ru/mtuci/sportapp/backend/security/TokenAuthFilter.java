@@ -11,8 +11,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import ru.mtuci.sportapp.backend.entity.UserSession;
-import ru.mtuci.sportapp.backend.repo.UserSessionRepo;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,11 +19,10 @@ import java.util.List;
 @Component
 public class TokenAuthFilter extends OncePerRequestFilter {
 
-    // Репозиторий с активными сессиями: по токену получаем userId и роль
-    private final UserSessionRepo userSessionRepo;
+    private final JwtTokenService jwtTokenService;
 
-    public TokenAuthFilter(UserSessionRepo userSessionRepo) {
-        this.userSessionRepo = userSessionRepo;
+    public TokenAuthFilter(JwtTokenService jwtTokenService) {
+        this.jwtTokenService = jwtTokenService;
     }
 
     @Override
@@ -34,23 +31,25 @@ public class TokenAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         // Ищем Bearer-токен в заголовке Authorization
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (header != null && header.startsWith("Bearer ")) {
+        // Не перезаписываем аутентификацию, если она уже установлена выше по цепочке.
+        if (SecurityContextHolder.getContext().getAuthentication() == null
+                && header != null
+                && header.startsWith("Bearer ")) {
             String token = header.substring(7).trim();
-            // Если токен найден в БД сессий — поднимаем Authentication в SecurityContext
-            userSessionRepo.findById(token).ifPresent(this::authenticate);
+            // Преобразуем валидный JWT в AuthPrincipal и поднимаем SecurityContext.
+            jwtTokenService.parseAccessToken(token).ifPresent(this::authenticate);
         }
 
         filterChain.doFilter(request, response);
     }
 
-    private void authenticate(UserSession session) {
-        // Principal нужен контроллерам для доступа к userId/role текущего пользователя
-        AuthPrincipal principal = new AuthPrincipal(session.getUserId(), session.getUsername(), session.getRole());
+    private void authenticate(AuthPrincipal principal) {
+        // Principal нужен контроллерам для доступа к userId/role текущего пользователя.
         List<GrantedAuthority> authorities = new ArrayList<>();
-        // ROLE_* используется в hasRole(...)
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + session.getRole().name()));
-        // Permission authorities используются в hasAuthority(...)
-        for (Permission permission : RolePermissions.permissionsFor(session.getRole())) {
+        // ROLE_* authorities используются в hasRole(...).
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + principal.role().name()));
+        // Permission authorities используются в hasAuthority(...).
+        for (Permission permission : RolePermissions.permissionsFor(principal.role())) {
             authorities.add(new SimpleGrantedAuthority(permission.name()));
         }
         var auth = new UsernamePasswordAuthenticationToken(principal, null, authorities);

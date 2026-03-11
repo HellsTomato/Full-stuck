@@ -32,6 +32,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
             // Публичные эндпоинты для входа/регистрации
                         .requestMatchers(HttpMethod.POST, "/api/login/**", "/api/register/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/refresh", "/api/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/trainers/profile/photo/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/athletes/photo/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/athletes/me").hasAuthority(Permission.SELF_PROFILE_MANAGE.name())
