@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 
 import { getAthletes } from '@/services/athletes'
 import { getWeeklyRation } from '@/services/ration'
@@ -53,6 +53,107 @@ export default function AthleteProfile() {
 
   const [tab, setTab] = useState<'common' | 'events' | 'health' | 'food'>('common')
 
+  // --- SEO: динамические мета-теги и JSON-LD для страницы профиля ---
+  useEffect(() => {
+    if (!athlete) return
+
+    // Title — видно в SERP и вкладке браузера
+    const title = `${athlete.fullName} — профиль спортсмена`
+    document.title = title
+
+    // Описание для поисковых систем
+    setMeta('description', `Профиль ${athlete.fullName}, группа ${athlete.group || '—'}.`)
+
+    // Open Graph для предпросмотра в соцсетях
+    setMeta('og:title', title, 'property')
+    setMeta('og:description', `Профиль спортсмена ${athlete.fullName}` , 'property')
+
+    // canonical — текущий URL, чтобы исключить дубли
+    setCanonical(window.location.href)
+
+    // JSON-LD (минимальная разметка Person)
+    const ld = {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": athlete.fullName,
+      "birthDate": athlete.birthDate || undefined,
+      "url": window.location.href
+    }
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.text = JSON.stringify(ld)
+    script.setAttribute('data-generated-by', 'LR4-SEO')
+    document.head.appendChild(script)
+
+    // Убираем добавленные теги при размонтировании/смене спортсмена
+    return () => {
+      removeMeta('description')
+      removeMeta('og:title', 'property')
+      removeMeta('og:description', 'property')
+      removeCanonical()
+      if (script.parentNode) script.parentNode.removeChild(script)
+    }
+  }, [athlete])
+
+  // Вспомогательные функции для работы с head (минимальная реализация без сторонних библиотек)
+  function setMeta(name: string, content: string | undefined, attr = 'name') {
+    if (!content) return
+    let el = document.head.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement | null
+    if (!el) {
+      el = document.createElement('meta')
+      el.setAttribute(attr, name)
+      document.head.appendChild(el)
+    }
+    el.content = content
+  }
+
+  function removeMeta(name: string, attr = 'name') {
+    const el = document.head.querySelector(`meta[${attr}="${name}"]`)
+    if (el && el.parentNode) el.parentNode.removeChild(el)
+  }
+
+  function setCanonical(href: string) {
+    let link = document.head.querySelector('link[rel="canonical"]') as HTMLLinkElement | null
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'canonical'
+      document.head.appendChild(link)
+    }
+    link.href = href
+  }
+
+  function removeCanonical() {
+    const link = document.head.querySelector('link[rel="canonical"]')
+    if (link && link.parentNode) link.parentNode.removeChild(link)
+  }
+  // --- /SEO ---
+
+  // --- External API widget: погода (пример интеграции внешнего API через backend adapter)
+  const [weather, setWeather] = useState<{ location?: string; tempC?: number; description?: string } | null>(null)
+  const [weatherLoading, setWeatherLoading] = useState(false)
+  const [weatherError, setWeatherError] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Пример: делаем запрос к нашему бэкенду, который адаптирует внешний API.
+    // Используем дефолтные координаты (Москва) — это упрощение для ЛР.
+    setWeatherLoading(true)
+    setWeatherError(null)
+    fetch('/api/external/weather?lat=55.7558&lon=37.6173')
+      .then((r) => {
+        if (!r.ok) throw new Error('service unavailable')
+        return r.json()
+      })
+      .then((json) => {
+        setWeather({ location: json.location, tempC: json.tempC, description: json.description })
+      })
+      .catch(() => {
+        // Graceful degradation: показываем простое сообщение, не ломая страницу
+        setWeatherError('Внешний сервис недоступен')
+      })
+      .finally(() => setWeatherLoading(false))
+  }, [])
+  // --- /External API widget ---
+
   if (!athlete) {
     return <div className="text-gray-500">Спортсмен не найден</div>
   }
@@ -74,6 +175,22 @@ export default function AthleteProfile() {
           </div>
         </div>
         <div className="text-sm text-gray-600">Группа: {formatTrainingGroup(athlete.group)}</div>
+      </div>
+      {/* Небольшой виджет погоды (интеграция внешнего API через backend-adapter) */}
+      <div className="text-sm text-gray-700"> 
+        {weatherLoading ? (
+          <div>Загрузка погоды…</div>
+        ) : weatherError ? (
+          <div className="text-gray-500">{weatherError}</div>
+        ) : weather ? (
+          <div className="flex items-center gap-3">
+            <div className="font-medium">Погода: </div>
+            <div>{weather.location} — {weather.tempC ?? '—'}°C</div>
+            <div className="text-gray-500">{weather.description}</div>
+          </div>
+        ) : (
+          <div className="text-gray-500">Погода недоступна</div>
+        )}
       </div>
 
       {/* Карточка с табами */}

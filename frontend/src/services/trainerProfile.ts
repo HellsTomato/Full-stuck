@@ -51,3 +51,12 @@ export async function uploadTrainerPhoto(
 
   return (await response.json()) as TrainerProfile
 }
+
+export async function deleteTrainerPhoto(username: string): Promise<TrainerProfile> {
+  return api<TrainerProfile>(
+    `${BASE_URL}/trainers/profile/photo?username=${encodeURIComponent(username)}`,
+    {
+      method: 'DELETE',
+    }
+  )
+}

@@ -1,9 +1,9 @@
 package ru.mtuci.sportapp.backend.controller;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,13 +18,10 @@ import ru.mtuci.sportapp.backend.model.TrainerProfileResponse;
 import ru.mtuci.sportapp.backend.model.TrainerProfileUpdateRequest;
 import ru.mtuci.sportapp.backend.repo.TrainerRepo;
 import ru.mtuci.sportapp.backend.security.AuthPrincipal;
+import ru.mtuci.sportapp.backend.service.MinioStorageService;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -35,18 +32,15 @@ import java.util.UUID;
 public class TrainerProfileController {
 
     private final TrainerRepo trainerRepo;
+    // Абстракция хранилища для операций с объектами в MinIO.
+    private final MinioStorageService storageService;
 
-    // Папка, куда складываем фото профиля (относительно корня приложения/контейнера)
-    private final Path uploadDir = Paths.get("uploads/profile-photos");
+    private static final long MAX_PHOTO_SIZE_BYTES = 5L * 1024L * 1024L;
 
-    // Создаём папку при старте приложения
+    // Проверяем доступность storage при старте приложения.
     @PostConstruct
     public void initUploadDir() {
-        try {
-            Files.createDirectories(uploadDir);
-        } catch (IOException e) {
-            throw new RuntimeException("Не удалось создать папку для фото профиля", e);
-        }
+        storageService.ensureBucketExists();
     }
 
     // -------- ПОЛУЧЕНИЕ ПРОФИЛЯ ТРЕНЕРА --------
@@ -82,7 +76,7 @@ public class TrainerProfileController {
 
     @PutMapping("/profile")
     public ResponseEntity<TrainerProfileResponse> updateProfile(
-            @RequestBody TrainerProfileUpdateRequest request
+            @Valid @RequestBody TrainerProfileUpdateRequest request
     ) {
         AuthPrincipal principal = currentPrincipal();
         if (!principal.username().equals(request.getUsername())) {
@@ -131,6 +125,14 @@ public class TrainerProfileController {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
+        // ЛР3: ограничения на загрузку пользовательских файлов.
+        if (file.getSize() > MAX_PHOTO_SIZE_BYTES) {
+            return ResponseEntity.badRequest().build();
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.toLowerCase(Locale.ROOT).startsWith("image/")) {
+            return ResponseEntity.badRequest().build();
+        }
 
         Optional<Trainer> trainerOpt = trainerRepo.findByUsername(username);
         if (trainerOpt.isEmpty()) {
@@ -145,18 +147,50 @@ public class TrainerProfileController {
             ext = "jpg";
         }
 
-        // уникальное имя файла
+        // Генерируем уникальный ключ объекта; его сохраняем в trainer.photoUrl.
         String filename = "trainer_" + username + "_" + UUID.randomUUID() + "." + ext;
-        Path target = uploadDir.resolve(filename);
 
         try {
-            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
+            String uploadContentType = contentType == null ? "application/octet-stream" : contentType;
+            storageService.upload(filename, file.getBytes(), uploadContentType);
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
 
+        // При замене фото удаляем старый файл, чтобы не оставлять мусор в storage.
         // в БД храним только имя файла
+        deleteExistingPhoto(trainer.getPhotoUrl());
         trainer.setPhotoUrl(filename);
+        Trainer saved = trainerRepo.save(trainer);
+
+        TrainerProfileResponse response = new TrainerProfileResponse(
+                saved.getUsername(),
+                saved.getFullName(),
+                saved.getEmail(),
+                saved.getPhone(),
+                saved.getEducation(),
+                saved.getAchievements(),
+                saved.getPhotoUrl()
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/profile/photo")
+    public ResponseEntity<TrainerProfileResponse> deletePhoto(@RequestParam("username") String username) {
+        AuthPrincipal principal = currentPrincipal();
+        if (!principal.username().equals(username)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        Optional<Trainer> trainerOpt = trainerRepo.findByUsername(username);
+        if (trainerOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        Trainer trainer = trainerOpt.get();
+        // ЛР3: удаление фото = удаление физического файла + очистка metadata.
+        deleteExistingPhoto(trainer.getPhotoUrl());
+        trainer.setPhotoUrl(null);
         Trainer saved = trainerRepo.save(trainer);
 
         TrainerProfileResponse response = new TrainerProfileResponse(
@@ -175,24 +209,23 @@ public class TrainerProfileController {
 
     @GetMapping("/profile/photo/{filename}")
     public ResponseEntity<Resource> getPhoto(@PathVariable String filename) {
+        if (filename == null || filename.contains("/") || filename.contains("\\")) {
+            return ResponseEntity.notFound().build();
+        }
+
         try {
-            Path file = uploadDir.resolve(filename);
-            if (!Files.exists(file)) {
+            var storedObject = storageService.get(filename);
+            if (storedObject.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
 
-            Resource resource = new UrlResource(file.toUri());
-            String contentType = Files.probeContentType(file);
-            if (contentType == null) {
-                contentType = "image/jpeg";
-            }
+            // Отдаем байты объекта из MinIO в HTTP-ответ.
+            Resource resource = new org.springframework.core.io.ByteArrayResource(storedObject.get().bytes());
 
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_TYPE, contentType)
+                    .header(HttpHeaders.CONTENT_TYPE, storedObject.get().contentType())
                     .body(resource);
-        } catch (MalformedURLException e) {
-            return ResponseEntity.notFound().build();
-        } catch (IOException e) {
+        } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -203,5 +236,19 @@ public class TrainerProfileController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
         return principal;
+    }
+
+    private void deleteExistingPhoto(String filename) {
+        if (filename == null || filename.isBlank()) {
+            return;
+        }
+        if (filename.contains("/") || filename.contains("\\")) {
+            return;
+        }
+        try {
+            storageService.deleteIfExists(filename);
+        } catch (RuntimeException ignored) {
+            // best-effort cleanup for old photo file
+        }
     }
 }

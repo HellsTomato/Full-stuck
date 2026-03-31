@@ -1,5 +1,6 @@
 package ru.mtuci.sportapp.backend.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -328,7 +329,7 @@ public class RationController {
     @PatchMapping("/{athleteId}/weight")
     public ResponseEntity<Void> updateDayInfo(
             @PathVariable UUID athleteId,
-            @RequestBody RationDayUpdateRequest req
+            @Valid @RequestBody RationDayUpdateRequest req
     ) {
         Athlete athlete = athleteRepo.findById(athleteId)
                 .orElseThrow(() -> new RuntimeException("Athlete not found"));

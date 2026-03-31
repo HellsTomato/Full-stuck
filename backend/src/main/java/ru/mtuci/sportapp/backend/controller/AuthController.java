@@ -1,6 +1,7 @@
 package ru.mtuci.sportapp.backend.controller;
 
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -26,7 +27,7 @@ public class AuthController {
 
     @PostMapping("/register/trainer")
     public ResponseEntity<LoginResponse> registerTrainer(
-            @RequestBody RegisterTrainerRequest request
+            @Valid @RequestBody RegisterTrainerRequest request
     ) {
         return ResponseEntity
             .status(HttpStatus.CREATED)
@@ -35,28 +36,28 @@ public class AuthController {
 
     @PostMapping("/register/athlete")
     public ResponseEntity<LoginResponse> registerAthlete(
-            @RequestBody RegisterAthleteRequest request
+            @Valid @RequestBody RegisterAthleteRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerAthlete(request));
     }
 
     @PostMapping("/login/trainer")
     public ResponseEntity<LoginResponse> loginTrainer(
-            @RequestBody LoginRequest request
+            @Valid @RequestBody LoginRequest request
     ) {
         return ResponseEntity.ok(authService.loginTrainer(request));
     }
 
     @PostMapping("/login/athlete")
     public ResponseEntity<LoginResponse> loginAthlete(
-            @RequestBody LoginRequest request
+            @Valid @RequestBody LoginRequest request
     ) {
         return ResponseEntity.ok(authService.loginAthlete(request));
     }
 
     @PostMapping("/auth/refresh")
-    public ResponseEntity<LoginResponse> refresh(@RequestBody TokenRefreshRequest request) {
-        // Обновление access token через refresh token (с ротацией refresh внутри сервиса).
+    public ResponseEntity<LoginResponse> refresh(@Valid @RequestBody TokenRefreshRequest request) {
+        // Обновление access token через n (с ротацией refresh внутри сервиса).
         return ResponseEntity.ok(authService.refresh(request));
     }
 

@@ -1,6 +1,7 @@
 // backend/src/main/java/ru/mtuci/sportapp/backend/controller/InjuryController.java
 package ru.mtuci.sportapp.backend.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -131,7 +132,7 @@ public class InjuryController {
     // POST /api/injuries
     // ──────────────────────────────────────
     @PostMapping
-    public ResponseEntity<InjuryDto> create(@RequestBody CreateInjuryRequest req) {
+    public ResponseEntity<InjuryDto> create(@Valid @RequestBody CreateInjuryRequest req) {
 
         if (req.getAthleteId() == null || req.getType() == null || req.getType().isBlank()) {
             return ResponseEntity.badRequest().build();

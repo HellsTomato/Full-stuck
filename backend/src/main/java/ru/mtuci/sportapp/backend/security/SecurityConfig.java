@@ -33,10 +33,16 @@ public class SecurityConfig {
             // Публичные эндпоинты для входа/регистрации
                         .requestMatchers(HttpMethod.POST, "/api/login/**", "/api/register/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/refresh", "/api/auth/logout").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/trainers/profile/photo/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/athletes/photo/**").authenticated()
+                        // SEO: публичные файлы sitemap/robots и публичный адаптер внешних данных
+                        .requestMatchers(HttpMethod.GET, "/sitemap.xml", "/robots.txt").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/external/weather").permitAll()
+                        // Фото грузятся через <img src>, браузер не добавляет Bearer-токен к таким запросам.
+                        .requestMatchers(HttpMethod.GET, "/api/trainers/profile/photo/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/athletes/photo/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/athletes/me").hasAuthority(Permission.SELF_PROFILE_MANAGE.name())
                         .requestMatchers(HttpMethod.POST, "/api/athletes/me/photo").hasRole("ATHLETE")
+                        // ЛР3: удаление собственного фото доступно только роли ATHLETE.
+                        .requestMatchers(HttpMethod.DELETE, "/api/athletes/me/photo").hasRole("ATHLETE")
                         .requestMatchers(HttpMethod.PATCH, "/api/athletes/me").hasAuthority(Permission.SELF_PROFILE_MANAGE.name())
                         .requestMatchers(HttpMethod.GET, "/api/athletes/**").hasAuthority(Permission.ATHLETES_READ.name())
                         .requestMatchers(HttpMethod.POST, "/api/athletes/**").hasRole("ATHLETE")
@@ -46,6 +52,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/trainers/profile/**").hasAuthority(Permission.TRAINER_PROFILE_MANAGE.name())
                         .requestMatchers(HttpMethod.PUT, "/api/trainers/profile/**").hasAuthority(Permission.TRAINER_PROFILE_MANAGE.name())
                         .requestMatchers(HttpMethod.POST, "/api/trainers/profile/**").hasAuthority(Permission.TRAINER_PROFILE_MANAGE.name())
+                        // ЛР3: удаление фото тренера защищено тем же permission, что и управление профилем.
+                        .requestMatchers(HttpMethod.DELETE, "/api/trainers/profile/photo").hasAuthority(Permission.TRAINER_PROFILE_MANAGE.name())
                         .requestMatchers(HttpMethod.POST, "/api/attendance/bulk").hasAuthority(Permission.ATTENDANCE_MANAGE.name())
                         .requestMatchers(HttpMethod.POST, "/api/weekly-plan/**").hasAuthority(Permission.WEEKLY_PLAN_MANAGE.name())
                         .requestMatchers(HttpMethod.DELETE, "/api/weekly-plan/**").hasAuthority(Permission.WEEKLY_PLAN_MANAGE.name())

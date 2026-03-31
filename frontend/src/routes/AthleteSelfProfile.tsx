@@ -5,6 +5,7 @@ import {
   getMyAthlete,
   updateMyAthlete,
   uploadMyAthletePhoto,
+  deleteMyAthletePhoto,
 } from "@/services/athletes";
 import { logoutSession } from "@/services/auth";
 import type { Athlete } from "@/types";
@@ -100,6 +101,20 @@ export default function AthleteSelfProfile() {
     }
   };
 
+  const handleDeletePhoto = async () => {
+    try {
+      setPhotoUploading(true);
+      const updated = await deleteMyAthletePhoto();
+      setProfile(updated);
+      setEditData(updated);
+    } catch (e) {
+      console.error(e);
+      setError("Не удалось удалить фото");
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-6 text-[var(--color-text)]">Загрузка профиля…</div>;
   }
@@ -155,6 +170,16 @@ export default function AthleteSelfProfile() {
               className="hidden"
               onChange={handlePhotoChange}
             />
+            {editData.photoUrl && (
+              <button
+                type="button"
+                onClick={handleDeletePhoto}
+                disabled={photoUploading}
+                className="btn-danger text-xs px-3 py-1.5 rounded-2xl ml-2 disabled:opacity-60"
+              >
+                Удалить фото
+              </button>
+            )}
           </div>
         </div>
 

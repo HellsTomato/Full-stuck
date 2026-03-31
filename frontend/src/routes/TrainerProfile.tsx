@@ -6,6 +6,7 @@ import {
   getTrainerProfile,
   updateTrainerProfile,
   uploadTrainerPhoto,
+  deleteTrainerPhoto,
   TrainerProfile,
 } from '@/services/trainerProfile'
 import { logoutSession } from '@/services/auth'
@@ -102,6 +103,21 @@ const TrainerProfilePage: React.FC = () => {
     }
   }
 
+  const handleDeletePhoto = async () => {
+    if (!username) return
+    try {
+      setPhotoUploading(true)
+      const updated = await deleteTrainerPhoto(username)
+      setProfile(updated)
+      setEditData(updated)
+    } catch (err) {
+      console.error(err)
+      setError('Не удалось удалить фото')
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
   if (!username) {
     return <div className="p-6 text-[var(--color-text)]">Вы не авторизованы</div>
   }
@@ -175,6 +191,16 @@ const TrainerProfilePage: React.FC = () => {
               className="hidden"
               onChange={handlePhotoChange}
             />
+            {editData.photoUrl && (
+              <button
+                type="button"
+                onClick={handleDeletePhoto}
+                disabled={photoUploading}
+                className="btn-danger text-xs px-3 py-1.5 rounded-2xl ml-2 disabled:opacity-60"
+              >
+                Удалить фото
+              </button>
+            )}
           </div>
         </div>
 

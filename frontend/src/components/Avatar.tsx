@@ -23,6 +23,7 @@ export default function Avatar({ name, src, size = 36, className = '' }: Props) 
       <img
         src={src}
         alt={name || 'Аватар'}
+        loading="lazy"
         style={dimension}
         className={`rounded-full object-cover bg-gray-100 ${className}`}
         onError={(e) => {

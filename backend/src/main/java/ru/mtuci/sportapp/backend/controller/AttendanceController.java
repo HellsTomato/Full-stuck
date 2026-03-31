@@ -1,5 +1,6 @@
 package ru.mtuci.sportapp.backend.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -150,7 +151,7 @@ public class AttendanceController {
     // =====================================================================
     @PostMapping("/bulk")
     public ResponseEntity<AttendanceListResponse> saveBulk(
-            @RequestBody AttendanceBulkUpdateRequest request
+            @Valid @RequestBody AttendanceBulkUpdateRequest request
     ) {
         LocalDate date = request.getDate();
         TrainingGroup group = request.getGroup();

@@ -1,6 +1,6 @@
 // frontend/src/routes/Dashboard.tsx
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchWeekPlan } from "@/services/weeklyPlan";
 import { getAttendance } from "@/services/attendance";
@@ -141,6 +141,54 @@ export default function Dashboard() {
     window.localStorage.setItem(GROUP_KEY, g);
     window.location.reload(); // перерисуем Dashboard с новой группой
   };
+
+  // --- SEO: базовые динамические мета-теги для Dashboard ---
+  useEffect(() => {
+    const title = 'Панель управления — Приложение для тренера'
+    document.title = title
+    setMeta('description', 'Панель управления: обзор тренировок, посещаемости и отчетов.')
+    setMeta('og:title', title, 'property')
+    setMeta('og:description', 'Панель управления: обзор тренировок, посещаемости и отчетов.', 'property')
+    setCanonical(window.location.href)
+    return () => {
+      removeMeta('description')
+      removeMeta('og:title', 'property')
+      removeMeta('og:description', 'property')
+      removeCanonical()
+    }
+  }, [])
+
+  function setMeta(name: string, content: string | undefined, attr = 'name') {
+    if (!content) return
+    let el = document.head.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement | null
+    if (!el) {
+      el = document.createElement('meta')
+      el.setAttribute(attr, name)
+      document.head.appendChild(el)
+    }
+    el.content = content
+  }
+
+  function removeMeta(name: string, attr = 'name') {
+    const el = document.head.querySelector(`meta[${attr}="${name}"]`)
+    if (el && el.parentNode) el.parentNode.removeChild(el)
+  }
+
+  function setCanonical(href: string) {
+    let link = document.head.querySelector('link[rel="canonical"]') as HTMLLinkElement | null
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'canonical'
+      document.head.appendChild(link)
+    }
+    link.href = href
+  }
+
+  function removeCanonical() {
+    const link = document.head.querySelector('link[rel="canonical"]')
+    if (link && link.parentNode) link.parentNode.removeChild(link)
+  }
+  // --- /SEO ---
 
   return (
     <div className="p-4 md:p-6 space-y-4 text-[var(--color-text)]">
