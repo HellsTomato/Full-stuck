@@ -14,6 +14,10 @@ import java.util.Map;
 /**
  * Контроллер для фронтенда — предоставляет нормализованные данные от внешнего погодного API.
  * Возвращает 503, если внешний сервис не настроен или недоступен (graceful degradation).
+ *
+ * - Этот контроллер является серверной прослойкой (adapter) к внешнему API.
+ *   Фронтенд вызывает этот локальный endpoint, а не напрямую OpenWeatherMap.
+ * - Такой подход позволяет скрыть ключи, добавлять таймауты/retries и нормализовать формат.
  */
 @RestController
 @RequestMapping("/api/external")
@@ -26,15 +30,18 @@ public class ExternalWeatherController {
     public ResponseEntity<?> weather(@RequestParam double lat, @RequestParam double lon) {
         var maybe = weatherService.getCurrentWeather(lat, lon);
         if (maybe.isEmpty()) {
-            // Внешний API не настроен или недоступен — возвращаем 503 для graceful degradation
+            // Внешний API не настроен или недоступен — возвращаем 503 для graceful degradation.
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "external weather service unavailable"));
         }
         var dto = maybe.get();
+        // Возвращаем флаг demo=true, если данные демо-режима — это помогает
+        // фронтенду показать, что данные не реальные.
         return ResponseEntity.ok(Map.of(
-                "location", dto.locationName,
-                "tempC", dto.temperatureCelsius,
-                "description", dto.description
+            "location", dto.locationName,
+            "tempC", dto.temperatureCelsius,
+            "description", dto.description,
+            "demo", dto.demo
         ));
     }
 }

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom"; // Link — ссылка на /login
 import { useAuth } from "@/context/auth";   // путь через alias "@"
 import { registerAthlete, registerTrainer } from "../services/auth";   // registerTrainer — API регистрации
+import { usePageSeo } from '@/utils/seo'
 
 const RegisterPage: React.FC = () => {          // RegisterPage — компонент регистрации
   const [role, setRole] = useState<"TRAINER" | "ATHLETE">("TRAINER");
@@ -19,6 +20,13 @@ const RegisterPage: React.FC = () => {          // RegisterPage — компон
 
   const auth = useAuth();                        // auth — доступ к login/logout/token
   const navigate = useNavigate();                // navigate — переход по маршрутам
+
+  usePageSeo({
+    title: 'Регистрация в Sport Planner',
+    description:
+      'Создайте аккаунт тренера или спортсмена в Sport Planner и начните вести тренировочный процесс онлайн.',
+    keywords: 'регистрация, спорт, тренер, спортсмен, личный кабинет',
+  })
 
   const handleSubmit = async (e: React.FormEvent) => { // обработчик отправки формы
     e.preventDefault();                         // отменяем стандартный submit
@@ -181,6 +189,10 @@ const RegisterPage: React.FC = () => {          // RegisterPage — компон
           >
             Войти
           </Link>
+        </p>
+
+        <p className="mt-2 text-xs text-slate-400 text-center">
+          <Link to="/" className="hover:text-slate-200">О сервисе</Link>
         </p>
       </div>
     </div>

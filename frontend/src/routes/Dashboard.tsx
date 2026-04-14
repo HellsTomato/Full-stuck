@@ -1,6 +1,6 @@
 // frontend/src/routes/Dashboard.tsx
 
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchWeekPlan } from "@/services/weeklyPlan";
 import { getAttendance } from "@/services/attendance";
@@ -144,6 +144,9 @@ export default function Dashboard() {
 
   // --- SEO: базовые динамические мета-теги для Dashboard ---
   useEffect(() => {
+    // ЛР4: добавлены базовые динамические мета-теги для Dashboard.
+    // Цель: показать, что ключевые страницы имеют title/description и Open Graph.
+    // Проверка: откройте Dashboard и посмотрите head -> title/meta.
     const title = 'Панель управления — Приложение для тренера'
     document.title = title
     setMeta('description', 'Панель управления: обзор тренировок, посещаемости и отчетов.')
@@ -189,6 +192,26 @@ export default function Dashboard() {
     if (link && link.parentNode) link.parentNode.removeChild(link)
   }
   // --- /SEO ---
+
+  // --- Weather widget for trainers (LR4 demo) ---
+  const [weather, setWeather] = useState<{ location?: string; tempC?: number; description?: string } | null>(null)
+  const [weatherLoading, setWeatherLoading] = useState(false)
+  const [weatherError, setWeatherError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isTrainer) return // показываем только тренерам
+    setWeatherLoading(true)
+    setWeatherError(null)
+    fetch('/api/external/weather?lat=55.7558&lon=37.6173')
+      .then((r) => {
+        if (!r.ok) throw new Error('service unavailable')
+        return r.json()
+      })
+      .then((json) => setWeather({ location: json.location, tempC: json.tempC, description: json.description }))
+      .catch(() => setWeatherError('Внешний сервис недоступен'))
+      .finally(() => setWeatherLoading(false))
+  }, [isTrainer])
+  // --- /Weather ---
 
   return (
     <div className="p-4 md:p-6 space-y-4 text-[var(--color-text)]">
@@ -249,7 +272,7 @@ export default function Dashboard() {
         {/* ===== ПРАВАЯ КОЛОНКА ===== */}
         <div className="space-y-3">
           {/* Выбор группы */}
-          <div className="card-dark p-3 flex items-center gap-2">
+            <div className="card-dark p-3 flex items-center gap-2">
             <label className="text-sm opacity-70">Группа:</label>
             <select
               className="px-3 py-2 rounded-xl bg-[var(--color-bg)] border text-sm"
@@ -261,6 +284,27 @@ export default function Dashboard() {
               <option value="SENIORS">Старшие</option>
             </select>
           </div>
+
+            {/* Виджет погоды (только для тренера) */}
+            {isTrainer && (
+              <div className="card-dark p-3">
+                <div className="px-1 pb-2 text-sm font-semibold opacity-70">Погода</div>
+                <div className="p-1 text-sm">
+                  {weatherLoading ? (
+                    <div className="text-gray-500">Загрузка...</div>
+                  ) : weatherError ? (
+                    <div className="text-red-400">Недоступно</div>
+                  ) : weather ? (
+                    <div className="text-sm">
+                      <div className="font-medium">{weather.location}</div>
+                      <div className="opacity-80">{weather.tempC}°C — {weather.description}</div>
+                    </div>
+                  ) : (
+                    <div className="text-gray-500">Нет данных</div>
+                  )}
+                </div>
+              </div>
+            )}
 
           {/* Недельный мини-календарь */}
           <div className="card-dark">

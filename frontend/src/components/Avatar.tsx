@@ -8,6 +8,9 @@ type Props = {
 }
 
 export default function Avatar({ name, src, size = 36, className = '' }: Props) {
+  // небольшая правка для SEO/перформанса — добавлен lazy-loading для изображений.
+  // атрибут `loading="lazy"` уменьшает время первой отрисовки
+  // и снижает количество одновременно загружаемых изображений, что улучшает метрики.
   // безопасные инициалы
   const initials =
     (name?.split(' ')

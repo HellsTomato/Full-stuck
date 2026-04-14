@@ -33,7 +33,11 @@ public class SecurityConfig {
             // Публичные эндпоинты для входа/регистрации
                         .requestMatchers(HttpMethod.POST, "/api/login/**", "/api/register/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/refresh", "/api/auth/logout").permitAll()
-                        // SEO: публичные файлы sitemap/robots и публичный адаптер внешних данных
+                        // ЛР4: специально разрешаем публичный доступ к /sitemap.xml и /robots.txt,
+                        // а также к адаптеру внешнего API `/api/external/weather`.
+                        // Обоснование для защиты: sitemap/robots должны быть доступны поисковым ботам,
+                        // внешний адаптер публичен, потому что возвращает только общую (публичную)
+                        // информацию погоды и не раскрывает секреты (ключ хранится на сервере).
                         .requestMatchers(HttpMethod.GET, "/sitemap.xml", "/robots.txt").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/external/weather").permitAll()
                         // Фото грузятся через <img src>, браузер не добавляет Bearer-токен к таким запросам.

@@ -10,6 +10,10 @@ import jakarta.servlet.http.HttpServletRequest;
  * Простой контроллер для отдачи sitemap.xml и robots.txt
  * Легковесная реализация, достаточная для ЛР: отдаёт список публичных URL
  * и блокирует доступ к API-эндпоинтам в robots.txt.
+ *
+ * - /sitemap.xml — базовый sitemap, перечисляет приоритетные публичные страницы.
+ *   Проверка: запустите приложение и используйте `curl http://localhost:8080/sitemap.xml`.
+ * - /robots.txt — даёт простые правила обхода и указывает расположение sitemap.
  */
 @RestController
 public class SeoController {
@@ -17,9 +21,7 @@ public class SeoController {
     @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
     public String sitemap(HttpServletRequest request) {
         String base = baseUrl(request);
-
-        // Вариант самый простой: перечисляем основные публичные страницы.
-        // При необходимости сюда можно добавить динамическую генерацию из БД.
+        // перечисляем основные публичные страницы.
         String[] paths = new String[]{
                 "/",
                 "/dashboard",
@@ -45,7 +47,9 @@ public class SeoController {
     @GetMapping(value = "/robots.txt", produces = MediaType.TEXT_PLAIN_VALUE)
     public String robots(HttpServletRequest request) {
         String base = baseUrl(request);
-        // Простые правила: запрещаем сканирование API и приватных разделов, позволяем всё остальное.
+        // ЛР4: Простые правила для роботов — запрещаем сканирование API и приватных разделов,
+        // разрешаем всё остальное. Это минимальная конфигурация, которой достаточно
+        // для корректной индексации публичных страниц MVP.
         return "User-agent: *\n" +
                 "Disallow: /api/\n" +
                 "Disallow: /admin/\n" +

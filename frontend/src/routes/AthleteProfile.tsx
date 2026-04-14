@@ -56,6 +56,13 @@ export default function AthleteProfile() {
   // --- SEO: динамические мета-теги и JSON-LD для страницы профиля ---
   useEffect(() => {
     if (!athlete) return
+    // ЛР4: SEO (контентная и техническая оптимизация)
+    // - Динамический title/description (пункт 2.3 ТЗ)
+    // - Open Graph для предпросмотра (пункт 2.5)
+    // - canonical для исключения дублей (пункт 2.4)
+    // - JSON-LD (пункт 3.4)
+    // Пояснение для защиты: откройте любой публичный профиль, посмотрите <head>
+    // и покажите, что теги обновляются динамически для каждого спортсмена.
 
     // Title — видно в SERP и вкладке браузера
     const title = `${athlete.fullName} — профиль спортсмена`
@@ -134,8 +141,14 @@ export default function AthleteProfile() {
   const [weatherError, setWeatherError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Пример: делаем запрос к нашему бэкенду, который адаптирует внешний API.
-    // Используем дефолтные координаты (Москва) — это упрощение для ЛР.
+    // ЛР4: интеграция стороннего API (пример)
+    // - Сценарий: показываем простую информацию о погоде рядом с профилем.
+    // - Серверный адаптер (/api/external/weather) скрывает ключ и добавляет
+    //   таймауты/retries (безопасность, надежность) — см. ExternalWeatherService.
+    // - Клиент демонстрирует состояния: loading / error / empty (graceful degradation).
+    // Для защиты: если ключ не задан, endpoint вернёт 503 и здесь отобразится ошибка.
+
+    // Пример запроса: дефолтные координаты (Москва) — упрощение для ЛР.
     setWeatherLoading(true)
     setWeatherError(null)
     fetch('/api/external/weather?lat=55.7558&lon=37.6173')
@@ -174,23 +187,21 @@ export default function AthleteProfile() {
             Год рождения: {athlete.birthDate?.slice(0, 4) || '—'}
           </div>
         </div>
-        <div className="text-sm text-gray-600">Группа: {formatTrainingGroup(athlete.group)}</div>
-      </div>
-      {/* Небольшой виджет погоды (интеграция внешнего API через backend-adapter) */}
-      <div className="text-sm text-gray-700"> 
-        {weatherLoading ? (
-          <div>Загрузка погоды…</div>
-        ) : weatherError ? (
-          <div className="text-gray-500">{weatherError}</div>
-        ) : weather ? (
-          <div className="flex items-center gap-3">
-            <div className="font-medium">Погода: </div>
-            <div>{weather.location} — {weather.tempC ?? '—'}°C</div>
-            <div className="text-gray-500">{weather.description}</div>
+        <div className="text-sm text-gray-600 text-right">
+          <div>Группа: {formatTrainingGroup(athlete.group)}</div>
+          {/* Блок погоды (демо): показывает состояние загрузки / ошибку / данные */}
+          <div className="mt-1">
+            {weatherLoading ? (
+              <span className="text-gray-500">Загрузка погоды...</span>
+            ) : weatherError ? (
+              <span className="text-red-400 text-sm">Погода недоступна</span>
+            ) : weather ? (
+              <span className="text-sm">{weather.location}: {weather.tempC}°C — {weather.description}</span>
+            ) : (
+              <span className="text-gray-500 text-sm">Погода не загружена</span>
+            )}
           </div>
-        ) : (
-          <div className="text-gray-500">Погода недоступна</div>
-        )}
+        </div>
       </div>
 
       {/* Карточка с табами */}

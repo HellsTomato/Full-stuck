@@ -27,6 +27,7 @@ const InjuriesDetail = React.lazy(() => import('./routes/InjuriesDetail'))
 const RationPage = React.lazy(() => import('./routes/RationPage'))
 const AthleteRationPage = React.lazy(() => import('./routes/AthleteRationPage'))
 const Reports = React.lazy(() => import('./routes/Reports'))
+const LandingPage = React.lazy(() => import('./routes/LandingPage'))
 
 const LoginPage = React.lazy(() => import('./routes/LoginPage'))
 const RegisterPage = React.lazy(() => import('./routes/RegisterPage'))
@@ -36,6 +37,15 @@ import NotFound from './routes/NotFound'
 import PrivateRoute from './routes/PrivateRoute'
 
 const router = createBrowserRouter([
+  {
+    path: '/',
+    element: (
+      <React.Suspense fallback={<div>Загрузка…</div>}>
+        <LandingPage />
+      </React.Suspense>
+    ),
+    errorElement: <ErrorPage />,
+  },
   {
     path: '/login',
     element: (
@@ -55,21 +65,15 @@ const router = createBrowserRouter([
     errorElement: <ErrorPage />,
   },
   {
-    path: '/',
     // Базовая защита: все дочерние экраны доступны только после логина
     element: <PrivateRoute />,
     errorElement: <ErrorPage />,
     children: [
       {
-        path: '/',
         element: <App />,
         children: [
           {
-            index: true,
-            element: <Navigate to="/dashboard" replace />,
-          },
-          {
-            path: 'dashboard',
+            path: '/dashboard',
             element: (
               <React.Suspense fallback={<div>Загрузка…</div>}>
                 <Dashboard />
@@ -77,7 +81,7 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'athletes',
+            path: '/athletes',
             // trainer-only разделы проверяются через allowedRoles
             element: <PrivateRoute allowedRoles={["TRAINER"]} />,
             children: [
@@ -92,7 +96,7 @@ const router = createBrowserRouter([
             ],
           },
           {
-            path: 'athletes/:id',
+            path: '/athletes/:id',
             element: <PrivateRoute allowedRoles={["TRAINER"]} />,
             children: [
               {
@@ -106,7 +110,7 @@ const router = createBrowserRouter([
             ],
           },
           {
-            path: 'weekly-plan',
+            path: '/weekly-plan',
             element: <PrivateRoute allowedRoles={["TRAINER"]} />,
             children: [
               {
@@ -120,7 +124,7 @@ const router = createBrowserRouter([
             ],
           },
           {
-            path: 'attendance',
+            path: '/attendance',
             element: <PrivateRoute allowedRoles={["TRAINER"]} />,
             children: [
               {
@@ -134,7 +138,7 @@ const router = createBrowserRouter([
             ],
           },
           {
-            path: 'injuries',
+            path: '/injuries',
             element: <PrivateRoute allowedRoles={["TRAINER"]} />,
             children: [
               {
@@ -148,7 +152,7 @@ const router = createBrowserRouter([
             ],
           },
           {
-            path: 'injuries/:id',
+            path: '/injuries/:id',
             element: <PrivateRoute allowedRoles={["TRAINER"]} />,
             children: [
               {
@@ -162,7 +166,7 @@ const router = createBrowserRouter([
             ],
           },
           {
-            path: 'ration',
+            path: '/ration',
             element: <PrivateRoute allowedRoles={["TRAINER"]} />,
             children: [
               {
@@ -176,7 +180,7 @@ const router = createBrowserRouter([
             ],
           },
           {
-            path: 'ration/athlete/:athleteId',
+            path: '/ration/athlete/:athleteId',
             element: <PrivateRoute allowedRoles={["TRAINER"]} />,
             children: [
               {
@@ -190,7 +194,7 @@ const router = createBrowserRouter([
             ],
           },
           {
-            path: 'reports',
+            path: '/reports',
             element: <PrivateRoute allowedRoles={["TRAINER"]} />,
             children: [
               {
@@ -204,7 +208,7 @@ const router = createBrowserRouter([
             ],
           },
           {
-            path: 'athlete-profile',
+            path: '/athlete-profile',
             // self-профиль доступен только роли ATHLETE
             element: <PrivateRoute allowedRoles={["ATHLETE"]} />,
             children: [
@@ -219,7 +223,7 @@ const router = createBrowserRouter([
             ],
           },
           {
-            path: 'trainer-profile',
+            path: '/trainer-profile',
             element: <PrivateRoute allowedRoles={["TRAINER"]} />,
             children: [
               {
@@ -231,6 +235,10 @@ const router = createBrowserRouter([
                 ),
               },
             ],
+          },
+          {
+            path: '/app',
+            element: <Navigate to="/dashboard" replace />,
           },
           {
             path: '*',

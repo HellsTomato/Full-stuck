@@ -36,6 +36,10 @@ services:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET: profile-photos
+      # переменная для доступа к внешнему погодному API.
+      # Значение подставляется из переменных окружения хоста (если задано).
+      # Пример: в PowerShell `$env:OPENWEATHERMAP_API_KEY="ваш_ключ"` перед `docker compose up`.
+      OPENWEATHERMAP_API_KEY: ${OPENWEATHERMAP_API_KEY:-}
     depends_on:
       - db
       - minio

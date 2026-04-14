@@ -4,6 +4,7 @@ import React, { useState } from "react";         // useState — состоян�
 import { useNavigate, Link } from "react-router-dom"; // useNavigate/Link — навигация
 import { useAuth } from "@/context/auth";   // путь через alias "@"
 import { loginAthlete, loginTrainer } from "../services/auth";      // loginTrainer — запрос на бэкенд
+import { usePageSeo } from '@/utils/seo'
 
 const LoginPage: React.FC = () => {              // LoginPage — компонент страницы входа
   const [role, setRole] = useState<"TRAINER" | "ATHLETE">("TRAINER");
@@ -14,6 +15,13 @@ const LoginPage: React.FC = () => {              // LoginPage — компоне
 
   const auth = useAuth();                        // auth — объект контекста (token, login, logout)
   const navigate = useNavigate();                // navigate — функция перехода по маршрутам
+
+  usePageSeo({
+    title: 'Вход в Sport Planner',
+    description:
+      'Войдите в Sport Planner, чтобы управлять тренировочным процессом или отслеживать личный прогресс спортсмена.',
+    keywords: 'вход, авторизация, спорт, тренер, спортсмен',
+  })
 
   const handleSubmit = async (e: React.FormEvent) => { // handleSubmit — обработчик формы
     e.preventDefault();                         // preventDefault — не перезагружать страницу
@@ -111,6 +119,10 @@ const LoginPage: React.FC = () => {              // LoginPage — компоне
           >
             Зарегистрироваться как {role === "TRAINER" ? "тренер" : "атлет"}
           </Link>
+        </p>
+
+        <p className="mt-2 text-xs text-slate-400 text-center">
+          <Link to="/" className="hover:text-slate-200">О сервисе</Link>
         </p>
       </div>
     </div>
