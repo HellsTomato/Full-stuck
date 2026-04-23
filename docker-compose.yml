@@ -1,59 +1,105 @@
 services:
   db:
-    image: postgres:15-alpine   # <-- было 16.x
+    image: postgres:15-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: trainer_db
-      POSTGRES_USER: trainer
-      POSTGRES_PASSWORD: trainer
+      POSTGRES_DB: ${POSTGRES_DB:-trainer_db}
+      POSTGRES_USER: ${POSTGRES_USER:-trainer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trainer}
     ports:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-trainer} -d ${POSTGRES_DB:-trainer_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app_net
 
   minio:
     image: minio/minio:latest
     container_name: sportapp_minio
+    restart: unless-stopped
     # S3-совместимое объектное хранилище для фото профилей
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
       - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - app_net
 
   backend:
     build: ./backend
     container_name: trainer_backend
+    restart: unless-stopped
     environment:
       # Эти переменные подхватит Spring
-      DB_URL: jdbc:postgresql://db:5432/trainer_db
-      DB_USER: trainer
-      DB_PASS: trainer
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-trainer_db}
+      DB_USER: ${POSTGRES_USER:-trainer}
+      DB_PASS: ${POSTGRES_PASSWORD:-trainer}
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-dev-change-this-secret}
+      AUTH_ACCESS_TTL_SECONDS: ${AUTH_ACCESS_TTL_SECONDS:-900}
+      AUTH_REFRESH_TTL_SECONDS: ${AUTH_REFRESH_TTL_SECONDS:-604800}
       MINIO_ENDPOINT: http://minio:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET: profile-photos
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-profile-photos}
       # переменная для доступа к внешнему погодному API.
       # Значение подставляется из переменных окружения хоста (если задано).
       # Пример: в PowerShell `$env:OPENWEATHERMAP_API_KEY="ваш_ключ"` перед `docker compose up`.
       OPENWEATHERMAP_API_KEY: ${OPENWEATHERMAP_API_KEY:-}
     depends_on:
-      - db
-      - minio
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     ports:
       - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 25s
+    networks:
+      - app_net
 
   frontend:
     build: ./frontend
     container_name: trainer_frontend
+    restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "5173:80" # сайт будет на http://localhost:5173
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app_net
 
 volumes:
   pg_data:
   minio_data:
+
+networks:
+  app_net:
+    driver: bridge

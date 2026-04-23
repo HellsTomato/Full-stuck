@@ -38,6 +38,7 @@ public class SecurityConfig {
                         // Обоснование для защиты: sitemap/robots должны быть доступны поисковым ботам,
                         // внешний адаптер публичен, потому что возвращает только общую (публичную)
                         // информацию погоды и не раскрывает секреты (ключ хранится на сервере).
+                        .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/sitemap.xml", "/robots.txt").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/external/weather").permitAll()
                         // Фото грузятся через <img src>, браузер не добавляет Bearer-токен к таким запросам.

@@ -74,10 +74,10 @@ export default function AttendancePage() {
     isLoading,
     isError,
     error,
-  } = useQuery({
+  } = useQuery<Attendance[]>({
     queryKey,
     queryFn: () => getAttendance({ date, group }),
-    keepPreviousData: true,
+    placeholderData: (prev) => prev ?? [],
   })
 
   // При изменении данных с сервера — обновляем локальное состояние

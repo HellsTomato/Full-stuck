@@ -3,7 +3,7 @@
 import { useMemo, useState, type ChangeEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import type { Injury, InjuryStatus } from '@/styles/types'
+import type { Injury, InjuryStatus } from '@/types'
 import { fetchInjuries } from '@/services/injuries'
 
 // Метки групп
@@ -68,7 +68,7 @@ export default function InjuriesPage() {
         group: groupFilter,
         search,
       }),
-    keepPreviousData: true,
+    placeholderData: (prev) => prev ?? [],
   })
 
   const isEmpty = !isLoading && injuries.length === 0

@@ -2,8 +2,10 @@
 export type Athlete = {
   id: string;
   fullName: string;
+  username?: string;
   birthDate: string;
   group: string;
+  grp?: string;
   phone?: string;
   photoUrl?: string;
   notes?: string;
@@ -24,6 +26,8 @@ export type Attendance = {
   id: string;
   athleteId: string;
   sessionId: string;
+  fullName?: string;
+  group?: string;
   status: "PRESENT" | "LATE" | "ABSENT";
   comment?: string;
 };

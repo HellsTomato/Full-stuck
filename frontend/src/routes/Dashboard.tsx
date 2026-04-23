@@ -3,6 +3,7 @@
 import { useMemo, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchWeekPlan } from "@/services/weeklyPlan";
+import type { TrainingGroup } from "@/services/weeklyPlan";
 import { getAttendance } from "@/services/attendance";
 import { useNavigate } from "react-router-dom";
 import type { Attendance } from "@/types";
@@ -62,12 +63,14 @@ export default function Dashboard() {
     (typeof window !== "undefined" &&
       window.localStorage.getItem(GROUP_KEY)) ||
     "ALL";
+  const weeklyGroup: TrainingGroup =
+    storedGroup === "JUNIORS" || storedGroup === "SENIORS" ? storedGroup : "ALL";
 
   // ===== НЕДЕЛЬНЫЙ ПЛАН =====
   const { data: trainings = [] } = useQuery({
     queryKey: ["weekly", weekStart, storedGroup],
     // fetchWeekPlan ожидает (weekStart, groupCode)
-    queryFn: () => fetchWeekPlan(weekStart, storedGroup),
+    queryFn: () => fetchWeekPlan(weekStart, weeklyGroup),
   });
 
   // Находим тренировку на сегодня для выбранной группы

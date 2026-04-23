@@ -1,7 +1,7 @@
 // frontend/src/services/injuries.ts
 
 // Импортируем общий тип травмы и enum статуса
-import type { Injury, InjuryStatus } from '@/styles/types'
+import type { Injury, InjuryStatus } from '@/types'
 import { api } from './client'
 
 /**

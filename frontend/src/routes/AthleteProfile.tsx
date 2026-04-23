@@ -40,7 +40,7 @@ export default function AthleteProfile() {
   // посещаемость
   const { data: attendance } = useQuery({
     queryKey: ['attendance'],
-    queryFn: () => getAttendance({}),
+    queryFn: () => getAttendance({ date: new Date().toISOString().slice(0, 10) }),
   })
 
   // Последний известный вес из weekly.days[*].weight
@@ -171,11 +171,9 @@ export default function AthleteProfile() {
     return <div className="text-gray-500">Спортсмен не найден</div>
   }
 
-  const athleteInjuries =
-    injuries?.items.filter((i) => i.athleteId === athlete.id) || []
+  const athleteInjuries = injuries?.filter((i) => i.athleteId === athlete.id) || []
 
-  const missed =
-    (attendance?.items || []).filter((a) => a.status === 'Отсутствовал').length
+  const missed = (attendance || []).filter((a) => a.status === 'ABSENT').length
 
   return (
     <div className="space-y-4">
@@ -263,7 +261,7 @@ export default function AthleteProfile() {
               </div>
               <div>
                 <b>Активные травмы:</b>{' '}
-                {athleteInjuries.filter((i) => i.status === 'Активная').length}
+                {athleteInjuries.filter((i) => i.status === 'ACTIVE').length}
               </div>
             </div>
           </div>
@@ -275,7 +273,7 @@ export default function AthleteProfile() {
             {athleteInjuries.length ? (
               athleteInjuries.map((i) => (
                 <div key={i.id} className="text-sm border-b py-1">
-                  [{i.status}] {i.kind} — {i.date}
+                  [{i.status}] {i.type} — {i.date}
                 </div>
               ))
             ) : (

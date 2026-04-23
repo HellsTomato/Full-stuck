@@ -6,6 +6,7 @@
   "scripts": {
     "prebuild": "export ROLLUP_SKIP_NODE_NATIVE=1 || set ROLLUP_SKIP_NODE_NATIVE=1",
     "dev": "vite",
+    "lint": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest --environment jsdom",

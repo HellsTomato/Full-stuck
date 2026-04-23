@@ -96,7 +96,7 @@ export default function WeeklyPlan() {
         queryKey: ["weekly-plan", weekStart, groupFilter],
       });
       setEditing(null);
-      toast.success("Сохранено");
+      toast.push("Сохранено", "success");
     },
   });
 
@@ -106,7 +106,7 @@ export default function WeeklyPlan() {
       qc.invalidateQueries({
         queryKey: ["weekly-plan", weekStart, groupFilter],
       });
-      toast.success("Удалено");
+      toast.push("Удалено", "success");
     },
   });
 
@@ -119,7 +119,7 @@ export default function WeeklyPlan() {
       qc.invalidateQueries({
         queryKey: ["weekly-plan", weekStart, groupFilter],
       });
-      toast.success("Неделя вставлена");
+      toast.push("Неделя вставлена", "success");
     },
   });
 
@@ -128,7 +128,7 @@ export default function WeeklyPlan() {
   // -------------------------------------------------------------
   function handleCopy() {
     setCopiedWeek(weekStart);
-    toast.success(`Неделя ${weekStart} скопирована`);
+    toast.push(`Неделя ${weekStart} скопирована`, "success");
   }
 
   // -------------------------------------------------------------
